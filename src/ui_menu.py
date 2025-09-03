@@ -1,8 +1,8 @@
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QPushButton, QFileDialog,
-    QSpinBox, QLabel, QDialogButtonBox
+    QLabel, QHBoxLayout, QCheckBox, QDateEdit, QTimeEdit
 )
-from .intersection_config import IntersectionConfig
+from PyQt6.QtCore import QDate, QTime
 
 
 class SetupDialog(QDialog):
@@ -19,28 +19,69 @@ class SetupDialog(QDialog):
         self.video_btn.clicked.connect(self.select_video)
         layout.addWidget(self.video_btn)
 
-        # Example: ask for number of approaches
-        layout.addWidget(QLabel("Number of approaches:"))
-        self.approaches_spin = QSpinBox()
-        self.approaches_spin.setRange(1, 8)
-        self.approaches_spin.setValue(4)
-        layout.addWidget(self.approaches_spin)
+        # --- Observation date ---
+        self.date_input = QDateEdit()
+        self.date_input.setCalendarPopup(True)
+        self.date_input.setDate(QDate.currentDate())
+        layout.addWidget(QLabel("Date of observation:"))
+        layout.addWidget(self.date_input)
+
+        # --- Video start time ---
+        self.time_input = QTimeEdit()
+        self.time_input.setTime(QTime(12, 0))
+        layout.addWidget(QLabel("Video starting time:"))
+        layout.addWidget(self.time_input)
+
+        # Approaches
+        layout.addWidget(QLabel("Select approaches:"))
+        self.approaches = {}
+        approaches_layout = QHBoxLayout()
+        for name in ["NB", "SB", "WB", "EB"]:
+            cb = QCheckBox(name)
+            cb.setChecked(True)
+            self.approaches[name] = cb
+            approaches_layout.addWidget(cb)
+        layout.addLayout(approaches_layout)
 
         # OK/Cancel
-        buttons = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
-        )
-        buttons.accepted.connect(self.accept)
-        buttons.rejected.connect(self.reject)
-        layout.addWidget(buttons)
+        buttons_layout = QHBoxLayout()
+        ok_btn = QPushButton("OK")
+        cancel_btn = QPushButton("Cancel")
+        ok_btn.clicked.connect(self.accept)
+        cancel_btn.clicked.connect(self.reject)
+        buttons_layout.addWidget(ok_btn)
+        buttons_layout.addWidget(cancel_btn)
+        layout.addLayout(buttons_layout)
+
 
     def select_video(self):
         path, _ = QFileDialog.getOpenFileName(self, "Select Video")
         if path:
             self.video_path = path
+            self.video_btn.setText(path.split("/")[-1])
 
     def get_config(self):
-        return IntersectionConfig(self.approaches_spin.value())
+        """Return dict with selected approaches, date, and start time."""
+        selected_approaches = [name for name, cb in self.approaches.items() if cb.isChecked()]
+        t = self.get_start_time()
+        return {
+            "video_path": self.video_path,
+            "approaches": selected_approaches,
+            "date": self.get_date(),
+            "start_time": t[0],
+            "start_time_seconds": t[1]
+        }
 
-    def get_video_path(self):
-        return self.video_path
+    # def get_video_path(self):
+    #     return self.video_path
+
+    def get_date(self):
+        """Return selected date as YYYY-MM-DD string"""
+        return self.date_input.date().toString("yyyy-MM-dd")
+
+    def get_start_time(self):
+        """Return starting time in seconds"""
+        t = self.time_input.time()
+        ts = t.hour() * 3600 + t.minute() * 60 + t.second()
+        return [f'{t.hour():02}:{t.minute():02}:{t.second():02}',ts]
+

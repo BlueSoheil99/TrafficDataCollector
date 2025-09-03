@@ -11,7 +11,7 @@ from src.data_manager import DataManager
 
 
 class MainWindow(QMainWindow):
-    def __init__(self, config, video_path):
+    def __init__(self, config:IntersectionConfig):
         super().__init__()
         self.setWindowTitle("Traffic Counter")
 
@@ -20,7 +20,7 @@ class MainWindow(QMainWindow):
         layout = QHBoxLayout(central)
 
         # Video player on the left
-        self.video_player = VideoPlayer(video_path)
+        self.video_player = VideoPlayer(config.video_path)
         layout.addWidget(self.video_player)
 
         # Counter panel on the right
@@ -45,12 +45,9 @@ def main():
     # Run setup dialog
     dialog = SetupDialog()
     if dialog.exec() == dialog.DialogCode.Accepted:
-        config = dialog.get_config()
-        video_path = dialog.get_video_path()
-        window = MainWindow(config, video_path)
+        config = IntersectionConfig(dialog.get_config())
+        window = MainWindow(config)
         window.show()
-        # window.raise_()
-        # window.activateWindow()
         sys.exit(app.exec())
     else:
         sys.exit()
