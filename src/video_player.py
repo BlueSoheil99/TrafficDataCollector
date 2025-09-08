@@ -20,6 +20,7 @@ class VideoPlayer(QWidget):
         self.fps = self.cap.get(cv2.CAP_PROP_FPS) or 30
         self.current_frame_idx = 0
         self.playing = False
+        self.rotation_angle = 0
 
         # Overlay for drawing
         ret, frame = self.cap.read()
@@ -55,22 +56,24 @@ class VideoPlayer(QWidget):
         self.prev_button = QPushButton()
         self.next_button = QPushButton()
         self.clear_button = QPushButton()
+        self.rotate_button = QPushButton()
         self.play_button.setIcon(QIcon('data/icons/playPause.png'))
         self.prev_button.setIcon(QIcon('data/icons/rewind.png'))
         self.next_button.setIcon(QIcon('data/icons/forward.png'))
         self.clear_button.setIcon(QIcon('data/icons/eraser.png'))
-
+        self.rotate_button.setIcon(QIcon('data/icons/rotate.png'))
         control_layout.addWidget(self.play_button)
         control_layout.addWidget(self.prev_button)
         control_layout.addWidget(self.next_button)
         control_layout.addWidget(self.clear_button)
+        control_layout.addWidget(self.rotate_button)
         main_layout.addLayout(control_layout)
-
         # Connect signals
         self.play_button.clicked.connect(self.toggle_play)
         self.prev_button.clicked.connect(self.prev_frame)
         self.next_button.clicked.connect(self.next_frame)
         self.clear_button.clicked.connect(self.clear_overlay)
+        self.rotate_button.clicked.connect(self.rotate_frame)
 
         # Timer for playback
         self.timer = QTimer()
@@ -132,6 +135,11 @@ class VideoPlayer(QWidget):
         self.show_frame(self.current_frame_idx)
 
     # --- Frame display ---
+    def rotate_frame(self):
+        self.rotation_angle += 90
+        self.rotation_angle %= 360
+        self.show_frame(self.current_frame_idx)
+
     def update_frame(self):
         if not self.playing:
             return
@@ -162,6 +170,16 @@ class VideoPlayer(QWidget):
     def show_cv_frame(self, frame):
         # Apply overlay
         frame_with_overlay = cv2.addWeighted(frame, 1.0, self.global_overlay, 1.0, 0)
+        # Apply rotation
+        if self.rotation_angle == 90:
+            frame_with_overlay = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
+        elif self.rotation_angle == 180:
+            frame_with_overlay = cv2.rotate(frame, cv2.ROTATE_180)
+        elif self.rotation_angle == 270:
+            frame_with_overlay = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
+        else:
+            pass  # 0 degree
+
         frame_rgb = cv2.cvtColor(frame_with_overlay, cv2.COLOR_BGR2RGB)
         h, w, ch = frame_rgb.shape
         bytes_per_line = ch * w
@@ -179,4 +197,8 @@ class VideoPlayer(QWidget):
         seconds = int(seconds_total % 60)
         milliseconds = int((seconds_total - int(seconds_total)) * 1000)
         return f"{minutes:02}:{seconds:02}.{milliseconds:03}"
+
+    def get_current_time(self):
+        """Return current video time in seconds"""
+        return self.current_frame_idx / self.fps
 
