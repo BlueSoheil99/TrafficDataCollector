@@ -5,6 +5,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import QTimer, Qt, QPoint
 from PyQt6.QtGui import QPixmap, QImage, QPainter, QPen, QIcon
+from sipbuild.generator.parser.rules import start
 
 
 class VideoPlayer(QWidget):
@@ -20,6 +21,7 @@ class VideoPlayer(QWidget):
         self.fps = self.cap.get(cv2.CAP_PROP_FPS) or 30
         self.current_frame_idx = 0
         self.playing = False
+        self.playback_speed = 1.0
         self.rotation_angle = 0
 
         # Overlay for drawing
@@ -57,16 +59,19 @@ class VideoPlayer(QWidget):
         self.next_button = QPushButton()
         self.clear_button = QPushButton()
         self.rotate_button = QPushButton()
+        self.speed_button = QPushButton()
         self.play_button.setIcon(QIcon('data/icons/playPause.png'))
         self.prev_button.setIcon(QIcon('data/icons/rewind.png'))
         self.next_button.setIcon(QIcon('data/icons/forward.png'))
         self.clear_button.setIcon(QIcon('data/icons/eraser.png'))
         self.rotate_button.setIcon(QIcon('data/icons/rotate.png'))
+        self.speed_button.setIcon(QIcon('data/icons/speed.png'))
         control_layout.addWidget(self.play_button)
         control_layout.addWidget(self.prev_button)
         control_layout.addWidget(self.next_button)
         control_layout.addWidget(self.clear_button)
         control_layout.addWidget(self.rotate_button)
+        control_layout.addWidget(self.speed_button)
         main_layout.addLayout(control_layout)
         # Connect signals
         self.play_button.clicked.connect(self.toggle_play)
@@ -74,6 +79,7 @@ class VideoPlayer(QWidget):
         self.next_button.clicked.connect(self.next_frame)
         self.clear_button.clicked.connect(self.clear_overlay)
         self.rotate_button.clicked.connect(self.rotate_frame)
+        self.speed_button.clicked.connect(self.change_playback_speed)
 
         # Timer for playback
         self.timer = QTimer()
@@ -91,10 +97,13 @@ class VideoPlayer(QWidget):
     def toggle_play(self):
         self.playing = not self.playing
         if self.playing:
-            delay = int(1000 / self.fps)
-            self.timer.start(delay)
+            self.start_timer()
         else:
             self.timer.stop()
+
+    def start_timer(self):
+        delay = int((1000 / self.fps) / self.playback_speed)
+        self.timer.start(delay)
 
     def prev_frame(self):
         self.playing = False
@@ -140,6 +149,17 @@ class VideoPlayer(QWidget):
         self.rotation_angle %= 360
         self.show_frame(self.current_frame_idx)
 
+    def change_playback_speed(self):
+        if self.playback_speed == 1.0:
+            self.playback_speed = 0.75
+            self.speed_button.setStyleSheet("background-color: lightgray;")
+        elif self.playback_speed == 0.75:
+            self.playback_speed = 1.0
+            self.speed_button.setStyleSheet("")
+        if self.playing:
+            self.start_timer()
+
+
     def update_frame(self):
         if not self.playing:
             return
@@ -169,21 +189,22 @@ class VideoPlayer(QWidget):
 
     def show_cv_frame(self, frame):
         # Apply overlay
-        frame_with_overlay = cv2.addWeighted(frame, 1.0, self.global_overlay, 1.0, 0)
+        frame = cv2.addWeighted(frame, 1.0, self.global_overlay, 1.0, 0)
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         # Apply rotation
         if self.rotation_angle == 90:
-            frame_with_overlay = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
+            frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
         elif self.rotation_angle == 180:
-            frame_with_overlay = cv2.rotate(frame, cv2.ROTATE_180)
+            frame = cv2.rotate(frame, cv2.ROTATE_180)
         elif self.rotation_angle == 270:
-            frame_with_overlay = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
+            frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
         else:
             pass  # 0 degree
 
-        frame_rgb = cv2.cvtColor(frame_with_overlay, cv2.COLOR_BGR2RGB)
-        h, w, ch = frame_rgb.shape
+        # frame_rgb = cv2.cvtColor(frame_with_overlay, cv2.COLOR_BGR2RGB)
+        h, w, ch = frame.shape
         bytes_per_line = ch * w
-        qimg = QImage(frame_rgb.data, w, h, bytes_per_line, QImage.Format.Format_RGB888)
+        qimg = QImage(frame.data, w, h, bytes_per_line, QImage.Format.Format_RGB888)
         self.video_label.setPixmap(QPixmap.fromImage(qimg))
 
         # Update timestamp

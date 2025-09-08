@@ -41,6 +41,10 @@ from PyQt6.QtWidgets import (
     QPushButton, QLabel, QHBoxLayout
 )
 from PyQt6.QtCore import Qt
+
+from src.intersection_config import IntersectionConfig
+
+
 #
 # class CounterPanel(QWidget):
 #     def __init__(self, config):
@@ -132,7 +136,7 @@ from PyQt6.QtCore import Qt
 
 
 class CounterPanel(QWidget):
-    def __init__(self, config, get_current_time_callback):
+    def __init__(self, config:IntersectionConfig, get_current_time_callback):
         super().__init__()
         self.get_current_time = get_current_time_callback  # function returning current video time
         self.layout = QVBoxLayout(self)
@@ -147,7 +151,7 @@ class CounterPanel(QWidget):
         self.table = QTableWidget()
         self.layout.addWidget(self.table)
 
-        self.rows = ['car', 'bus', 'truck', 'bike']
+        self.rows = config.vehicle_classifications
         self.columns = ['through', 'left', 'right']
 
         # Store tables, memory, and click timestamps
