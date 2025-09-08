@@ -24,7 +24,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.video_player)
 
         # Counter panel on the right
-        self.counter_panel = CounterPanel(config)
+        self.counter_panel = CounterPanel(config, get_current_time_callback=self.video_player.get_current_time)
         layout.addWidget(self.counter_panel)
 
         self.setCentralWidget(central)
@@ -32,8 +32,8 @@ class MainWindow(QMainWindow):
         # Data manager
         self.data_manager = DataManager()
 
-        # Connect signals
-        self.counter_panel.count_added.connect(self.on_count_added)
+        # Connect signals todo
+        # self.counter_panel.count_added.connect(self.on_count_added)
 
     def on_count_added(self, record):
         self.data_manager.add_record(record)
@@ -46,6 +46,9 @@ def main():
     dialog = SetupDialog()
     if dialog.exec() == dialog.DialogCode.Accepted:
         config = IntersectionConfig(dialog.get_config())
+        if config.video_path == '':  ##todo DEBUG
+            config.video_path = ('/Users/soheil/Library/CloudStorage/OneDrive-UW/0 Research/Sound '
+                                 'Transit Project/Codes/TrafficDataCollector/data/0_0_1730564065032_10003_10026_0.mp4')
         window = MainWindow(config)
         window.show()
         sys.exit(app.exec())

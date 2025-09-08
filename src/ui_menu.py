@@ -1,6 +1,7 @@
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QPushButton, QFileDialog,
-    QLabel, QHBoxLayout, QCheckBox, QDateEdit, QTimeEdit
+    QLabel, QHBoxLayout, QCheckBox, QDateEdit, QTimeEdit,
+    QComboBox
 )
 from PyQt6.QtCore import QDate, QTime
 
@@ -43,6 +44,12 @@ class SetupDialog(QDialog):
             approaches_layout.addWidget(cb)
         layout.addLayout(approaches_layout)
 
+        # --- Dropdown menu ---
+        layout.addWidget(QLabel("Select data collection type:"))
+        self.collection_type = QComboBox()
+        self.collection_type.addItems(["Volume only", "speed only", "Volume and Speed", 'Near miss'])
+        layout.addWidget(self.collection_type)
+
         # OK/Cancel
         buttons_layout = QHBoxLayout()
         ok_btn = QPushButton("OK")
@@ -66,6 +73,7 @@ class SetupDialog(QDialog):
         t = self.get_start_time()
         return {
             "video_path": self.video_path,
+            "collection_type": self.collection_type.currentText(),
             "approaches": selected_approaches,
             "date": self.get_date(),
             "start_time": t[0],
