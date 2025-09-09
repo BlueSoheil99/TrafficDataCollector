@@ -3,19 +3,20 @@ import numpy as np
 from PyQt6.QtWidgets import (
     QWidget, QLabel, QVBoxLayout, QHBoxLayout, QPushButton, QSlider
 )
-from PyQt6.QtCore import QTimer, Qt, QPoint
-from PyQt6.QtGui import QPixmap, QImage, QPainter, QPen, QIcon
-from sipbuild.generator.parser.rules import start
+from PyQt6.QtCore import QTimer, Qt
+from PyQt6.QtGui import QPixmap, QImage, QIcon
+
+from .intersection_config import  IntersectionConfig
 
 
 class VideoPlayer(QWidget):
-    def __init__(self, video_path):
+    def __init__(self, config:IntersectionConfig):
         super().__init__()
 
         # Video capture
-        self.cap = cv2.VideoCapture(video_path)
+        self.cap = cv2.VideoCapture(config.video_path)
         if not self.cap.isOpened():
-            raise ValueError(f"Cannot open video: {video_path}")
+            raise ValueError(f"Cannot open video: {config.video_path}")
 
         self.total_frames = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
         self.fps = self.cap.get(cv2.CAP_PROP_FPS) or 30
@@ -60,12 +61,12 @@ class VideoPlayer(QWidget):
         self.clear_button = QPushButton()
         self.rotate_button = QPushButton()
         self.speed_button = QPushButton()
-        self.play_button.setIcon(QIcon('data/icons/playPause.png'))
-        self.prev_button.setIcon(QIcon('data/icons/rewind.png'))
-        self.next_button.setIcon(QIcon('data/icons/forward.png'))
-        self.clear_button.setIcon(QIcon('data/icons/eraser.png'))
-        self.rotate_button.setIcon(QIcon('data/icons/rotate.png'))
-        self.speed_button.setIcon(QIcon('data/icons/speed.png'))
+        self.play_button.setIcon(QIcon(config.icons['playPause']))
+        self.prev_button.setIcon(QIcon(config.icons['rewind']))
+        self.next_button.setIcon(QIcon(config.icons['forward']))
+        self.clear_button.setIcon(QIcon(config.icons['erase']))
+        self.rotate_button.setIcon(QIcon(config.icons['rotate']))
+        self.speed_button.setIcon(QIcon(config.icons['speed']))
         control_layout.addWidget(self.play_button)
         control_layout.addWidget(self.prev_button)
         control_layout.addWidget(self.next_button)
@@ -221,5 +222,5 @@ class VideoPlayer(QWidget):
 
     def get_current_time(self):
         """Return current video time in seconds"""
-        return self.current_frame_idx / self.fps
+        return round(self.current_frame_idx / self.fps, 1)
 

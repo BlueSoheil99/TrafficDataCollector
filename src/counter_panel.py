@@ -1,138 +1,14 @@
-# from PyQt6.QtWidgets import QWidget, QVBoxLayout, QPushButton, QLabel, QComboBox
-# from PyQt6.QtCore import pyqtSignal, QDateTime
-#
-# from src.intersection_config import IntersectionConfig
-#
-#
-# class CounterPanel(QWidget):
-#     count_added = pyqtSignal(dict)
-#
-#     def __init__(self, config:IntersectionConfig):
-#         super().__init__()
-#         layout = QVBoxLayout(self)
-#
-#         layout.addWidget(QLabel("Count Panel"))
-#
-#         # --- Dropdown menu ---
-#         layout.addWidget(QLabel("Select approach:"))
-#         self.selected_approach = QComboBox()
-#         self.selected_approach.addItems(config.approaches)
-#         layout.addWidget(self.selected_approach)
-#
-#         # Very simple: just 2 buttons
-#         self.car_btn = QPushButton("Car +1")
-#         self.truck_btn = QPushButton("Truck +1")
-#         layout.addWidget(self.car_btn)
-#         layout.addWidget(self.truck_btn)
-#
-#         self.car_btn.clicked.connect(lambda: self.add_count("Car"))
-#         self.truck_btn.clicked.connect(lambda: self.add_count("Truck"))
-#
-#     def add_count(self, vehicle_type):
-#         record = {
-#             "time": QDateTime.currentDateTime().toString(),
-#             "vehicle": vehicle_type,
-#         }
-#         self.count_added.emit(record)
-
-
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QComboBox, QTableWidget, QTableWidgetItem,
-    QPushButton, QLabel, QHBoxLayout
+    QPushButton, QLabel, QHBoxLayout, QHeaderView
 )
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QPixmap, QImage, QIcon
 
+from src.data_manager import DataManager
 from src.intersection_config import IntersectionConfig
 
 
-#
-# class CounterPanel(QWidget):
-#     def __init__(self, config):
-#         super().__init__()
-#         self.layout = QVBoxLayout(self)
-#
-#         # Dropdown to select approach
-#         self.layout.addWidget(QLabel("Select Approach:"))
-#         self.approach_select = QComboBox()
-#         self.approach_select.addItems(config.approaches)
-#         self.layout.addWidget(self.approach_select)
-#
-#         # Table widget
-#         self.table = QTableWidget()
-#         self.layout.addWidget(self.table)
-#
-#         # Define rows and columns
-#         self.rows = ['car', 'bus', 'truck', 'bike']
-#         self.columns = ['through', 'left', 'right']
-#
-#         # Store tables and memory for each approach
-#         self.tables_data = {}
-#         self.memory = {}
-#         for approach in config.approaches:
-#             self.tables_data[approach] = self.create_table()
-#             self.memory[approach] = self.create_memory()
-#
-#         # Show first approach table
-#         self.current_approach = config.approaches[0]
-#         self.show_table(self.current_approach)
-#
-#         # Connect dropdown
-#         self.approach_select.currentTextChanged.connect(self.on_approach_changed)
-#
-#     def create_memory(self):
-#         """Initialize memory dictionary for counts"""
-#         memory = {}
-#         for r in self.rows:
-#             memory[r] = {c: 0 for c in self.columns}
-#         return memory
-#
-#     def create_table(self):
-#         """Create table with buttons for each cell"""
-#         table = QTableWidget()
-#         table.setRowCount(len(self.rows))
-#         table.setColumnCount(len(self.columns))
-#         table.setHorizontalHeaderLabels(self.columns)
-#         table.setVerticalHeaderLabels(self.rows)
-#
-#         for row_idx, row_name in enumerate(self.rows):
-#             for col_idx, col_name in enumerate(self.columns):
-#                 btn = QPushButton("0")
-#                 btn.clicked.connect(lambda checked, r=row_name, c=col_name: self.increment_count(r, c))
-#                 table.setCellWidget(row_idx, col_idx, btn)
-#
-#         return table
-#
-#     def increment_count(self, row, col):
-#         """Increase count in memory and update button text"""
-#         self.memory[self.current_approach][row][col] += 1
-#         # Find button and update text
-#         table = self.tables_data[self.current_approach]
-#         row_idx = self.rows.index(row)
-#         col_idx = self.columns.index(col)
-#         btn = table.cellWidget(row_idx, col_idx)
-#         btn.setText(str(self.memory[self.current_approach][row][col]))
-#
-#     def show_table(self, approach):
-#         """Display the table for the selected approach"""
-#         if self.current_approach:
-#             # Remove old table
-#             self.layout.removeWidget(self.table)
-#             self.table.hide()
-#
-#         self.table = self.tables_data[approach]
-#         self.layout.addWidget(self.table)
-#         self.table.show()
-#
-#         self.current_approach = approach
-#
-#     def on_approach_changed(self, approach):
-#         self.show_table(approach)
-#
-#     def get_memory(self, approach=None):
-#         """Return memory dictionary for current or specified approach"""
-#         if approach is None:
-#             approach = self.current_approach
-#         return self.memory[approach]
 
 
 class CounterPanel(QWidget):
@@ -143,68 +19,145 @@ class CounterPanel(QWidget):
 
         # Approach dropdown
         self.layout.addWidget(QLabel("Select Approach:"))
+        self.selection_layout = QHBoxLayout(self)
         self.approach_select = QComboBox()
         self.approach_select.addItems(config.approaches)
-        self.layout.addWidget(self.approach_select)
+        self.selection_layout.addWidget(self.approach_select)
+        # # add eraser
+        self.erase_mode=False
+        self.erase_button = QPushButton("Erase")
+        self.erase_button.setIcon(QIcon(config.icons['erase']))
+        self.selection_layout.addWidget(self.erase_button)
+        self.erase_button.clicked.connect(self.erase_clicked)
+
+        self.layout.addLayout(self.selection_layout)
 
         # Table
+        self.layout.addWidget(QLabel('Vehicle counts'))
         self.table = QTableWidget()
         self.layout.addWidget(self.table)
 
-        self.rows = config.vehicle_classifications
+        self.veh_rows = config.vehicle_classifications
+        self.vru_rows = config.vru_classifications
         self.columns = ['through', 'left', 'right']
 
         # Store tables, memory, and click timestamps
         self.tables_data = {}
-        self.memory = {}
         self.timestamps = {}  # store timestamps for each approach, row, column
         for approach in config.approaches:
             self.tables_data[approach] = self.create_table()
-            self.memory[approach] = self.create_memory(default=0)
-            self.timestamps[approach] = self.create_memory(default=[])
+            self.timestamps[approach] = self.create_memory()
 
         # Show first approach table
         self.current_approach = config.approaches[0]
         self.show_table(self.current_approach)
         self.approach_select.currentTextChanged.connect(self.on_approach_changed)
 
-    def create_memory(self, default):
-        memory = {}
-        for r in self.rows:
-            memory[r] = {c: default for c in self.columns}
-        return memory
+        # add VRU counts
+        self.layout.addWidget(QLabel("VRU counts"))
+        self.layout.addWidget(QPushButton(f'pedestrian: {0}'))
 
+        # save button
+        self.data_manager = DataManager(config, self)
+        self.save_btn = QPushButton("Save")
+        self.save_btn.clicked.connect(self.data_manager.save_file)
+        self.layout.addWidget(self.save_btn)
+
+
+    def create_memory(self):
+        memory = {}
+        for r in self.veh_rows:
+            memory[r] = {c: [] for c in self.columns}
+        for r in self.vru_rows:
+            memory[f'vru_{r}'] = []
+        return memory
 
     def create_table(self):
         table = QTableWidget()
-        table.setRowCount(len(self.rows))
+        table.setRowCount(len(self.veh_rows))
         table.setColumnCount(len(self.columns))
         table.setHorizontalHeaderLabels(self.columns)
-        table.setVerticalHeaderLabels(self.rows)
+        table.setVerticalHeaderLabels(self.veh_rows)
 
-        for row_idx, row_name in enumerate(self.rows):
+        for row_idx, row_name in enumerate(self.veh_rows):
             for col_idx, col_name in enumerate(self.columns):
                 btn = QPushButton("0")
-                btn.clicked.connect(lambda checked, r=row_name, c=col_name: self.increment_count(r, c))
+                btn.clicked.connect(lambda checked, r=row_name, c=col_name: self.change_count_table(r, c))
                 table.setCellWidget(row_idx, col_idx, btn)
         return table
 
-    def increment_count(self, row, col):
-        """Increment count and store timestamp"""
-        self.memory[self.current_approach][row][col] += 1
-        btn = self.tables_data[self.current_approach].cellWidget(
-            self.rows.index(row), self.columns.index(col)
-        )
-        btn.setText(str(self.memory[self.current_approach][row][col]))
+    def update_table_display(self):
+        for row in self.veh_rows:
+            for col in self.columns:
+                if self.erase_mode:
+                    try:
+                        label = str(self.timestamps[self.current_approach][row][col][-1])
+                    except IndexError:
+                        label = '-'
+                else:
+                    label = str(len(self.timestamps[self.current_approach][row][col]))
 
-        # Store timestamp of click
-        timestamp = self.get_current_time()  # in seconds
-        print(timestamp)
-        if row not in self.timestamps[self.current_approach]:
-            self.timestamps[self.current_approach][row] = {}
-        if col not in self.timestamps[self.current_approach][row]:
-            self.timestamps[self.current_approach][row][col] = []
-        self.timestamps[self.current_approach][row][col].append(timestamp)
+                btn = self.tables_data[self.current_approach].cellWidget(
+                    self.veh_rows.index(row), self.columns.index(col)
+                )
+                btn.setText(label)
+
+    def change_count_table(self, row, col):
+        """
+        increase count and store timestamp if erase_mode is off,
+        removes last entry if erase_mode is on
+        """
+        if self.erase_mode:
+            if len(self.timestamps[self.current_approach][row][col])>0:
+                deleted_entry = self.timestamps[self.current_approach][row][col].pop()
+                print(f'The entry at time {deleted_entry} is removed from {self.current_approach}:[{row}, {col}]')
+                try:
+                    new_label = str(self.timestamps[self.current_approach][row][col][-1])
+                except IndexError:
+                    new_label = '-'
+            else:
+                new_label = '-'
+        else:
+            timestamp = self.get_current_time()  # in seconds
+            self.timestamps[self.current_approach][row][col].append(timestamp)
+            new_label = str(len(self.timestamps[self.current_approach][row][col]))
+
+        btn = self.tables_data[self.current_approach].cellWidget(
+            self.veh_rows.index(row), self.columns.index(col)
+        )
+        btn.setText(new_label)
+
+    def change_count_vru(self, vru_class):
+        # todo if self.erase_mode:
+        #     if len(self.timestamps[self.current_approach][row][col])>0:
+        #         deleted_entry = self.timestamps[self.current_approach][row][col].pop()
+        #         print(f'{deleted_entry} is removed from {self.current_approach}:[{row}, {col}]')
+        #         try:
+        #             new_label = str(self.timestamps[self.current_approach][row][col][-1])
+        #         except IndexError:
+        #             new_label = '-'
+        #     else:
+        #         new_label = '-'
+        # else:
+        #     timestamp = self.get_current_time()  # in seconds
+        #     self.timestamps[self.current_approach][row][col].append(timestamp)
+        #     new_label = str(len(self.timestamps[self.current_approach][row][col]))
+        #
+        # btn = self.tables_data[self.current_approach].cellWidget(
+        #     self.veh_rows.index(row), self.columns.index(col)
+        # )
+        # btn.setText(new_label)
+        print('pedestrian clicked') ### DEBUG todo
+        pass
+
+    def erase_clicked(self):
+        if self.erase_mode:
+            self.erase_mode = False
+            self.erase_button.setStyleSheet('')
+        else:
+            self.erase_mode = True
+            self.erase_button.setStyleSheet("background-color: salmon;")
+        self.update_table_display()
 
     def show_table(self, approach):
         if self.current_approach:
@@ -213,19 +166,18 @@ class CounterPanel(QWidget):
 
         self.table = self.tables_data[approach]
         self.layout.addWidget(self.table)
+
+        #todo check these
+        self.table.horizontalHeader().setStretchLastSection(True)
+        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self.table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self.table.setSizeAdjustPolicy(QTableWidget.SizeAdjustPolicy.AdjustToContents)
+
         self.table.show()
         self.current_approach = approach
 
     def on_approach_changed(self, approach):
         self.show_table(approach)
 
-    def get_memory(self, approach=None):
-        if approach is None:
-            approach = self.current_approach
-        return self.memory[approach]
 
-    def get_timestamps(self, approach=None):
-        if approach is None:
-            approach = self.current_approach
-        return self.timestamps[approach]
 

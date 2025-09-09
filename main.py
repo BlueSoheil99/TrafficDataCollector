@@ -1,5 +1,6 @@
 import sys
 
+from PyQt6.QtCore import QSize
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QHBoxLayout
 
@@ -14,29 +15,41 @@ class MainWindow(QMainWindow):
     def __init__(self, config:IntersectionConfig):
         super().__init__()
         self.setWindowTitle("Traffic Counter")
+        # self.setFixedSize(QSize(800, 500))
+
 
         # Central widget layout
         central = QWidget()
         layout = QHBoxLayout(central)
 
         # Video player on the left
-        self.video_player = VideoPlayer(config.video_path)
+        self.video_player = VideoPlayer(config)
         layout.addWidget(self.video_player)
 
+        # Data manager
+        # self.data_manager = DataManager() moveinside panel code
+
         # Counter panel on the right
-        self.counter_panel = CounterPanel(config, get_current_time_callback=self.video_player.get_current_time)
+        self.counter_panel = CounterPanel(config,
+                                          get_current_time_callback=self.get_current_time(config.start_time))
         layout.addWidget(self.counter_panel)
 
         self.setCentralWidget(central)
 
-        # Data manager
-        self.data_manager = DataManager()
+
 
         # Connect signals todo
         # self.counter_panel.count_added.connect(self.on_count_added)
 
+
     def on_count_added(self, record):
         self.data_manager.add_record(record)
+
+    def get_current_time(self, start_time):
+        video_time = self.video_player.get_current_time
+        print(start_time, video_time)
+        return video_time
+
 
 
 def main():
