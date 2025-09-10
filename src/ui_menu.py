@@ -91,3 +91,33 @@ class SetupDialog(QDialog):
         ts = t.hour() * 3600 + t.minute() * 60 + t.second()
         return [f'{t.hour():02}:{t.minute():02}:{t.second():02}',ts]
 
+
+class CacheDialog(QDialog):
+    def __init__(self):
+        super().__init__()
+
+        self.setWindowTitle("Cache Found")
+        self.setModal(True)  # block input to parent window
+        self.setFixedSize(350, 120)
+
+        # Message label
+        message = QLabel("Cache found. Do you want to reload your previous process?")
+        message.setWordWrap(True)
+
+        # Yes/No buttons
+        yes_btn = QPushButton("Yes")
+        no_btn = QPushButton("No")
+        yes_btn.clicked.connect(self.accept)  # closes dialog with Accepted
+        no_btn.clicked.connect(self.reject)   # closes dialog with Rejected
+
+        # Button layout
+        btn_layout = QHBoxLayout()
+        btn_layout.addStretch()  # push buttons to the right
+        btn_layout.addWidget(yes_btn)
+        btn_layout.addWidget(no_btn)
+
+        # Main layout
+        layout = QVBoxLayout()
+        layout.addWidget(message)
+        layout.addLayout(btn_layout)
+        self.setLayout(layout)

@@ -1,16 +1,19 @@
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QComboBox, QTableWidget,
-    QPushButton, QLabel, QHBoxLayout, QHeaderView, QFileDialog
+    QPushButton, QLabel, QHBoxLayout, QHeaderView, QFileDialog, QFrame, QSizePolicy
 )
 from PyQt6.QtGui import QIcon
+from PyQt6.QtCore import QTimer
 
 from src.data_manager import DataManager
 from src.intersection_config import IntersectionConfig
 
 
 
+
+
 class CounterPanel(QWidget):
-    def __init__(self, config:IntersectionConfig, get_current_time_callback):
+    def __init__(self, config:IntersectionConfig, get_current_time_callback, from_cache=False):
         super().__init__()
         self.get_current_time = get_current_time_callback  # function returning current video time
         self.layout = QVBoxLayout(self)
@@ -35,6 +38,7 @@ class CounterPanel(QWidget):
         self.erase_button.clicked.connect(self.erase_clicked)
         self.layout.addLayout(self.selection_layout)
 
+        self.create_line()
         #### vehicle count Table
         self.layout.addWidget(QLabel('Vehicle counts'))
         self.table = QTableWidget()  # probably don't need this line
@@ -60,11 +64,26 @@ class CounterPanel(QWidget):
                                                    self.vru_clicked(vru_class))
             self.vru_layout.addWidget(self.vru_buttons[user])
         self.layout.addLayout(self.vru_layout)
+        self.create_line()
 
         ### SAVE BUTTON
         self.save_btn = QPushButton("Save")
         self.save_btn.clicked.connect(self.save_data)
         self.layout.addWidget(self.save_btn)
+
+        ### MESSAGE section
+        self.msg_layout = QHBoxLayout()
+        self.last_action_label = QLabel("Last Action:")
+        # self.msg_layout.addWidget(self.last_action_label)
+        self.message_label = QLabel()
+        # self.msg_layout.addWidget(self.message_label)
+        style_message_section(self.msg_layout, self.last_action_label, self.message_label)
+        self.layout.addLayout(self.msg_layout)
+
+        #Create a timer to autosave cache
+        self.cache_timer = QTimer(self)
+        self.cache_timer.timeout.connect(self.auto_save_cache)
+        self.cache_timer.start(4000)  # 60,000 ms = 1 minute  #todo change
 
 
     def create_table(self):
@@ -79,6 +98,12 @@ class CounterPanel(QWidget):
                 btn.clicked.connect(lambda checked, r=row_name, c=col_name: self.table_clicked(r, c))
                 table.setCellWidget(row_idx, col_idx, btn)
         return table
+
+    def create_line(self):
+        line = QFrame()
+        line.setFrameShape(QFrame.Shape.HLine)
+        line.setFrameShadow(QFrame.Shadow.Sunken)
+        self.layout.addWidget(line)
 
     def update_table_display(self):
         for veh_class in self.veh_rows:
@@ -148,16 +173,13 @@ class CounterPanel(QWidget):
         if self.current_approach:
             self.table_layout.removeWidget(self.table)
             self.table.hide()
-
         self.table = self.tables_data[approach]
         self.table_layout.addWidget(self.table)
-
         #todo check these
-        self.table.horizontalHeader().setStretchLastSection(True)
+        # self.table.horizontalHeader().setStretchLastSection(True)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.table.setSizeAdjustPolicy(QTableWidget.SizeAdjustPolicy.AdjustToContents)
-
         self.table.show()
         self.current_approach = approach
 
@@ -175,3 +197,42 @@ class CounterPanel(QWidget):
         )
         if file_path:
             self.data_manager.save_file(file_path)
+
+    def auto_save_cache(self):
+        """Save cache automatically every 1 minute"""
+        # pick a cache path (temporary file or fixed location)
+        cache_path = "data/cache.json"
+        self.data_manager.save_file(cache_path)
+        self.message_label.setText("💾 Cache saved")
+
+
+def style_message_section(msg_layout, last_action_label, message_label):
+    msg_layout.setSpacing(5)  # small gap between label and message
+    msg_layout.setContentsMargins(0, 0, 0, 0)  # remove extra padding around layout
+
+    # Left-side label
+    last_action_label.setStyleSheet("""
+        QLabel {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            font-weight: normal;
+            color: #2C3E50;   /* subtle dark color */
+        }
+    """)
+    msg_layout.addWidget(last_action_label)
+
+    # Message label
+    message_label.setStyleSheet("""
+        QLabel {
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: normal;
+            color: #555555;
+            background-color: #F7F7F7;
+            border-radius: 3px;
+            padding: 2px 6px;
+        }
+    """)
+    # Let the message stretch to fill remaining horizontal space
+    message_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+    msg_layout.addWidget(message_label)
+
+
