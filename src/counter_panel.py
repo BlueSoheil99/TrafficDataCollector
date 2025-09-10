@@ -22,7 +22,8 @@ class CounterPanel(QWidget):
         self.veh_rows = config.vehicle_classifications
         self.vru_rows = config.vru_classifications
         self.columns = ['Left', 'Through', 'Right']  # movements
-        self.data_manager = DataManager(config, (self.veh_rows, self.vru_rows, self.columns))
+        self.data_manager = DataManager(config,
+                                        (self.veh_rows, self.vru_rows, self.columns))
 
         #### Approach dropdown and Mode selection
         self.layout.addWidget(QLabel("Select Approach:"))
@@ -52,6 +53,7 @@ class CounterPanel(QWidget):
         # Show first approach table
         self.current_approach = config.approaches[0]
         self.show_table(self.current_approach)
+        self.update_table_display() # to make sure loaded cache is show from the beginning
         self.approach_select.currentTextChanged.connect(self.on_approach_changed)
 
         ### VRU COUNTS
@@ -83,7 +85,7 @@ class CounterPanel(QWidget):
         #Create a timer to autosave cache
         self.cache_timer = QTimer(self)
         self.cache_timer.timeout.connect(self.auto_save_cache)
-        self.cache_timer.start(4000)  # 60,000 ms = 1 minute  #todo change
+        self.cache_timer.start(10000)  # 60,000 ms = 1 minute  #todo change
 
 
     def create_table(self):
@@ -196,7 +198,7 @@ class CounterPanel(QWidget):
             "JSON Files (*.json);;All Files (*)"
         )
         if file_path:
-            self.data_manager.save_file(file_path)
+            self.data_manager.save_file(file_path, remove_cache=True)
 
     def auto_save_cache(self):
         """Save cache automatically every 1 minute"""

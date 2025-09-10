@@ -1,14 +1,19 @@
 import json
+import os
 
 from src.intersection_config import IntersectionConfig
 
 
 class DataManager:
-
     def __init__(self, config:IntersectionConfig, data_dict_params:tuple):
         self.config = config
-        self.timestamps = _create_memory(veh_classes=data_dict_params[0], vru_classes=data_dict_params[1],
-                                         movements=data_dict_params[2], approaches=self.config.approaches)
+        if config.timestamps:
+            self.timestamps = config.timestamps
+            self.last_action = config.last_action
+        else:
+            self.timestamps = _create_memory(veh_classes=data_dict_params[0], vru_classes=data_dict_params[1],
+                                             movements=data_dict_params[2], approaches=self.config.approaches)
+            self.last_action = 0.0 # todo update this
 
     def get_veh_counts(self, veh_class, movement, approach):
         return self.timestamps[approach][veh_class][movement]
@@ -39,7 +44,6 @@ class DataManager:
         key = f'vru_{vru_class}'
         if erase_mode:
             if len(self.get_vru_counts(vru_class, approach)) > 0:
-                # todo? deleted_entry = self.timestamps[approach][key].pop()
                 deleted_entry = self.get_vru_counts(vru_class, approach).pop()
                 print(f'--Erased VRU {vru_class} at time {deleted_entry} from {approach} approach')
                 try:
@@ -55,26 +59,27 @@ class DataManager:
         return new_label
 
 
-    def save_file(self, path):
+    def save_file(self, path, remove_cache=False):
         print(f"Saving file@ {path}")
         data = {
         'video': self.config.video_path,
         'date': self.config.date,
         'start_time':self.config.start_time,
+        'last_action': self.last_action,
         'collection_type': self.config.collection_type,
         'approaches': self.config.approaches,
         'veh_classes':self.config.vehicle_classifications,
         'vru_classes':self.config.vru_classifications,
-        'Count_timestamps': self.timestamps
+        'timestamps': self.timestamps
         }
         with open(path, "w") as f:
             json.dump(data, f, indent=4)
-
-
-    def get_filename(self):
-        date=self.config.date
-        start_time=self.config.start_time
-        return 'test.json'
+        if remove_cache:
+            try:
+                os.remove('data/cache.json')
+                print("--- found and deleted the cache")
+            except FileNotFoundError:
+                print("--- cache not found")
 
 
 

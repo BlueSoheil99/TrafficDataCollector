@@ -11,6 +11,7 @@ from .intersection_config import  IntersectionConfig
 
 class VideoPlayer(QWidget):
     def __init__(self, config:IntersectionConfig):
+        #TODO make sure you read config.last_action and video starts from that point
         super().__init__()
 
         # Video capture

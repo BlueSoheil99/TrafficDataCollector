@@ -28,7 +28,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.counter_panel)
 
 
-def cache_exists(cache_path="cache.json"):
+def cache_exists(cache_path="data/cache.json"):
     try:
         with open(cache_path, "r") as f:
             data = json.load(f)
@@ -47,18 +47,17 @@ def main():
     cache = cache_exists()
     cache_reader = CacheDialog()
     if cache and cache_reader.exec() == cache_reader.DialogCode.Accepted:
-            config = IntersectionConfig(cache, from_cache=True)
-            run(app, config)
+            run(app, cache)
     else:
         # Run setup dialog
         dialog = SetupDialog()
         if dialog.exec() == dialog.DialogCode.Accepted:
-            config = IntersectionConfig(dialog.get_config())
-            run(app, config)
+            run(app, dialog.get_config())
         else:
             sys.exit()
 
-def run(app, config:IntersectionConfig):
+def run(app, config:dict):
+    config = IntersectionConfig(config)
     window = MainWindow(config)
     window.show()
     sys.exit(app.exec())
