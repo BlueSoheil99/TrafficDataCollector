@@ -222,5 +222,6 @@ class VideoPlayer(QWidget):
 
     def get_current_time(self):
         """Return current video time in seconds"""
-        return round(self.current_frame_idx / self.fps, 1)
+        # return round(self.current_frame_idx / self.fps, 1)
+        return self.current_frame_idx / self.fps
 

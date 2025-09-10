@@ -80,8 +80,6 @@ class SetupDialog(QDialog):
             "start_time_seconds": t[1]
         }
 
-    # def get_video_path(self):
-    #     return self.video_path
 
     def get_date(self):
         """Return selected date as YYYY-MM-DD string"""

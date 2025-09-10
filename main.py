@@ -31,24 +31,18 @@ class MainWindow(QMainWindow):
 
         # Counter panel on the right
         self.counter_panel = CounterPanel(config,
-                                          get_current_time_callback=self.get_current_time(config.start_time))
+                                          get_current_time_callback=self.video_player.get_current_time)
         layout.addWidget(self.counter_panel)
 
         self.setCentralWidget(central)
 
 
-
-        # Connect signals todo
-        # self.counter_panel.count_added.connect(self.on_count_added)
-
-
     def on_count_added(self, record):
         self.data_manager.add_record(record)
 
-    def get_current_time(self, start_time):
-        video_time = self.video_player.get_current_time
-        print(start_time, video_time)
-        return video_time
+    # def get_current_time(self):
+    #     video_time = self.video_player.get_current_time
+    #     return video_time
 
 
 

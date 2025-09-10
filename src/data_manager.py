@@ -31,7 +31,7 @@ class DataManager:
             return last_entry
         else:
             print(f'++Added Vehicle entry at time {entry_time} for {approach}:[{veh_class}, {movement}]')
-            self.timestamps[approach][veh_class][movement].append(entry_time)
+            self.timestamps[approach][veh_class][movement].append(_format_time(entry_time))
             return str(len(self.timestamps[approach][veh_class][movement]))
 
 
@@ -49,7 +49,7 @@ class DataManager:
             else:
                 new_label = '-'
         else:
-            self.timestamps[approach][key].append(entry_time)
+            self.timestamps[approach][key].append(_format_time(entry_time))
             print(f'++Added VRU entry at time {entry_time} for {approach}-{vru_class}.')
             new_label = str(len(self.get_vru_counts(vru_class, approach)))
         return new_label
@@ -88,3 +88,8 @@ def _create_memory(veh_classes, vru_classes, movements, approaches):
             memory[f'vru_{r}'] = []
         big_dict[approach] = memory
     return big_dict
+
+def _format_time(seconds):
+    mins, secs = divmod(seconds, 60)
+    formatted_time =  f'{int(mins):02d}:{secs:04.1f}'
+    return formatted_time

@@ -55,7 +55,7 @@ class CounterPanel(QWidget):
         self.vru_layout = QHBoxLayout()
         self.vru_buttons = {}
         for user in config.vru_classifications:
-            self.vru_buttons[user] = QPushButton(f"{user}:0")
+            self.vru_buttons[user] = QPushButton(f"{user}: 0")
             self.vru_buttons[user].clicked.connect(lambda checked, vru_class=user:
                                                    self.vru_clicked(vru_class))
             self.vru_layout.addWidget(self.vru_buttons[user])
@@ -110,7 +110,7 @@ class CounterPanel(QWidget):
                     label = '-'
             else:
                 label = str(len(counts))
-            btn.setText(f'{user}:{label}')
+            btn.setText(f'{user}: {label}')
 
     def table_clicked(self, row, col):
         """
