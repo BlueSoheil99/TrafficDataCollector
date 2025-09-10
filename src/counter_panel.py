@@ -1,13 +1,11 @@
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QComboBox, QTableWidget, QTableWidgetItem,
-    QPushButton, QLabel, QHBoxLayout, QHeaderView
+    QWidget, QVBoxLayout, QComboBox, QTableWidget,
+    QPushButton, QLabel, QHBoxLayout, QHeaderView, QFileDialog
 )
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QPixmap, QImage, QIcon
+from PyQt6.QtGui import QIcon
 
 from src.data_manager import DataManager
 from src.intersection_config import IntersectionConfig
-
 
 
 
@@ -17,7 +15,13 @@ class CounterPanel(QWidget):
         self.get_current_time = get_current_time_callback  # function returning current video time
         self.layout = QVBoxLayout(self)
 
-        # Approach dropdown
+        ### Initiating memory and datamanagere component
+        self.veh_rows = config.vehicle_classifications
+        self.vru_rows = config.vru_classifications
+        self.columns = ['Left', 'Through', 'Right']  # movements
+        self.data_manager = DataManager(config, (self.veh_rows, self.vru_rows, self.columns))
+
+        #### Approach dropdown and Mode selection
         self.layout.addWidget(QLabel("Select Approach:"))
         self.selection_layout = QHBoxLayout(self)
         self.approach_select = QComboBox()
@@ -29,33 +33,24 @@ class CounterPanel(QWidget):
         self.erase_button.setIcon(QIcon(config.icons['erase']))
         self.selection_layout.addWidget(self.erase_button)
         self.erase_button.clicked.connect(self.erase_clicked)
-
         self.layout.addLayout(self.selection_layout)
 
-        # Table
+        #### vehicle count Table
         self.layout.addWidget(QLabel('Vehicle counts'))
-        self.table = QTableWidget()
+        self.table = QTableWidget()  # probably don't need this line
         self.table_layout = QHBoxLayout()
         self.table_layout.addWidget(self.table)
         self.layout.addLayout(self.table_layout)
-
-        self.veh_rows = config.vehicle_classifications
-        self.vru_rows = config.vru_classifications
-        self.columns = ['through', 'left', 'right']
-
-        # Store tables, memory, and click timestamps
+        # Store tables, memory
         self.tables_data = {}
-        self.timestamps = {}  # store timestamps for each approach, row, column
         for approach in config.approaches:
             self.tables_data[approach] = self.create_table()
-            self.timestamps[approach] = self.create_memory()
-
         # Show first approach table
         self.current_approach = config.approaches[0]
         self.show_table(self.current_approach)
         self.approach_select.currentTextChanged.connect(self.on_approach_changed)
 
-        # add VRU counts
+        ### VRU COUNTS
         self.layout.addWidget(QLabel("VRU counts"))
         self.vru_layout = QHBoxLayout()
         self.vru_buttons = {}
@@ -64,23 +59,13 @@ class CounterPanel(QWidget):
             self.vru_buttons[user].clicked.connect(lambda checked, vru_class=user:
                                                    self.vru_clicked(vru_class))
             self.vru_layout.addWidget(self.vru_buttons[user])
-
         self.layout.addLayout(self.vru_layout)
 
-        # save button
-        self.data_manager = DataManager(config, self)
+        ### SAVE BUTTON
         self.save_btn = QPushButton("Save")
-        self.save_btn.clicked.connect(self.data_manager.save_file)
+        self.save_btn.clicked.connect(self.save_data)
         self.layout.addWidget(self.save_btn)
 
-
-    def create_memory(self):
-        memory = {}
-        for r in self.veh_rows:
-            memory[r] = {c: [] for c in self.columns}
-        for r in self.vru_rows:
-            memory[f'vru_{r}'] = []
-        return memory
 
     def create_table(self):
         table = QTableWidget()
@@ -88,7 +73,6 @@ class CounterPanel(QWidget):
         table.setColumnCount(len(self.columns))
         table.setHorizontalHeaderLabels(self.columns)
         table.setVerticalHeaderLabels(self.veh_rows)
-
         for row_idx, row_name in enumerate(self.veh_rows):
             for col_idx, col_name in enumerate(self.columns):
                 btn = QPushButton("0")
@@ -97,76 +81,56 @@ class CounterPanel(QWidget):
         return table
 
     def update_table_display(self):
-        for row in self.veh_rows:
-            for col in self.columns:
+        for veh_class in self.veh_rows:
+            for movement in self.columns:
+                counts = self.data_manager.get_veh_counts(veh_class, movement, self.current_approach)
                 if self.erase_mode:
                     try:
-                        label = str(self.timestamps[self.current_approach][row][col][-1])
+                        # label = str(self.timestamps[self.current_approach][row][col][-1])
+                        label = str(counts[-1])
                     except IndexError:
                         label = '-'
                 else:
-                    label = str(len(self.timestamps[self.current_approach][row][col]))
+                    # label = str(len(self.timestamps[self.current_approach][row][col]))
+                    label = str(len(counts))
 
                 btn = self.tables_data[self.current_approach].cellWidget(
-                    self.veh_rows.index(row), self.columns.index(col)
+                    self.veh_rows.index(veh_class), self.columns.index(movement)
                 )
                 btn.setText(label)
 
     def update_VRU_display(self):
         for user in self.vru_rows:
             btn = self.vru_buttons[user]
-            key = f'vru_{user}'
+            counts = self.data_manager.get_vru_counts(user, self.current_approach)
             if self.erase_mode:
                 try:
-                    label = str(self.timestamps[self.current_approach][key][-1])
+                    label = str(counts[-1])
                 except IndexError:
                     label = '-'
             else:
-                label = str(len(self.timestamps[self.current_approach][key]))
+                label = str(len(counts))
             btn.setText(f'{user}:{label}')
-
 
     def table_clicked(self, row, col):
         """
         increase count and store timestamp if erase_mode is off,
         removes last entry if erase_mode is on
         """
-        if self.erase_mode:
-            if len(self.timestamps[self.current_approach][row][col])>0:
-                deleted_entry = self.timestamps[self.current_approach][row][col].pop()
-                print(f'The entry at time {deleted_entry} is removed from {self.current_approach}:[{row}, {col}]')
-                try:
-                    new_label = str(self.timestamps[self.current_approach][row][col][-1])
-                except IndexError:
-                    new_label = '-'
-            else:
-                new_label = '-'
-        else:
-            timestamp = self.get_current_time()  # in seconds
-            self.timestamps[self.current_approach][row][col].append(timestamp)
-            new_label = str(len(self.timestamps[self.current_approach][row][col]))
-
+        new_label = self.data_manager.update_veh_counts(row, col,
+                                                       self.current_approach,
+                                                       self.erase_mode,
+                                                       self.get_current_time())
         btn = self.tables_data[self.current_approach].cellWidget(
             self.veh_rows.index(row), self.columns.index(col)
         )
         btn.setText(new_label)
 
     def vru_clicked(self, vru_class):
-        key = f'vru_{vru_class}'
-        if self.erase_mode:
-            if len(self.timestamps[self.current_approach][key])>0:
-                deleted_entry = self.timestamps[self.current_approach][key].pop()
-                print(f'pedestrian at {deleted_entry} is removed from {self.current_approach} approach')
-                try:
-                    new_label = str(self.timestamps[self.current_approach][key][-1])
-                except IndexError:
-                    new_label = '-'
-            else:
-                new_label = '-'
-        else:
-            timestamp = self.get_current_time()  # in seconds
-            self.timestamps[self.current_approach][key].append(timestamp)
-            new_label = str(len(self.timestamps[self.current_approach][key]))
+        new_label = self.data_manager.update_vru_counts(vru_class,
+                                                       self.current_approach,
+                                                       self.erase_mode,
+                                                       self.get_current_time())
         btn = self.vru_buttons[vru_class]
         btn.setText(f'{vru_class}: {new_label}')
 
@@ -202,4 +166,12 @@ class CounterPanel(QWidget):
         self.update_table_display()
         self.update_VRU_display()
 
-
+    def save_data(self):
+        file_path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Save Counts",
+            "",
+            "JSON Files (*.json);;All Files (*)"
+        )
+        if file_path:
+            self.data_manager.save_file(file_path)

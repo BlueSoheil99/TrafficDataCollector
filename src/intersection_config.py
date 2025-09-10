@@ -4,6 +4,7 @@ class IntersectionConfig:
         self.date = config['date']
         self.start_time = config['start_time']
         self.start_time_seconds = config['start_time_seconds']
+        self.collection_type = config['collection_type']
         self.approaches = config['approaches']
         self.vehicle_classifications = ['passenger_vehicle', 'bus', 'LRV', 'articulated_truck',
                                         'single_unit_truck', 'motorcycle', 'bicycle', 'scooter']
