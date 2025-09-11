@@ -85,7 +85,7 @@ class CounterPanel(QWidget):
         #Create a timer to autosave cache
         self.cache_timer = QTimer(self)
         self.cache_timer.timeout.connect(self.auto_save_cache)
-        self.cache_timer.start(10000)  # 60,000 ms = 1 minute  #todo change
+        self.cache_timer.start(30000)  # 30,000 ms = 30 seconds
 
 
     def create_table(self):
@@ -144,20 +144,22 @@ class CounterPanel(QWidget):
         increase count and store timestamp if erase_mode is off,
         removes last entry if erase_mode is on
         """
-        new_label = self.data_manager.update_veh_counts(row, col,
+        new_label, msg = self.data_manager.update_veh_counts(row, col,
                                                        self.current_approach,
                                                        self.erase_mode,
                                                        self.get_current_time())
+        self.update_message_box(msg)
         btn = self.tables_data[self.current_approach].cellWidget(
             self.veh_rows.index(row), self.columns.index(col)
         )
         btn.setText(new_label)
 
     def vru_clicked(self, vru_class):
-        new_label = self.data_manager.update_vru_counts(vru_class,
+        new_label, msg = self.data_manager.update_vru_counts(vru_class,
                                                        self.current_approach,
                                                        self.erase_mode,
                                                        self.get_current_time())
+        self.update_message_box(msg)
         btn = self.vru_buttons[vru_class]
         btn.setText(f'{vru_class}: {new_label}')
 
@@ -198,14 +200,20 @@ class CounterPanel(QWidget):
             "JSON Files (*.json);;All Files (*)"
         )
         if file_path:
-            self.data_manager.save_file(file_path, remove_cache=True)
+            msg = self.data_manager.save_file(file_path, cache=False)
+            self.update_message_box(msg)
 
     def auto_save_cache(self):
         """Save cache automatically every 1 minute"""
         # pick a cache path (temporary file or fixed location)
         cache_path = "data/cache.json"
-        self.data_manager.save_file(cache_path)
-        self.message_label.setText("💾 Cache saved")
+        msg = self.data_manager.save_file(cache_path, cache=True)
+        # self.message_label.setText("💾 Cache saved")
+        self.update_message_box(msg)
+
+    def update_message_box(self, text):
+        if text: #not None
+            self.message_label.setText(text)
 
 
 def style_message_section(msg_layout, last_action_label, message_label):

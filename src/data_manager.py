@@ -23,29 +23,37 @@ class DataManager:
 
 
     def update_veh_counts(self, veh_class, movement, approach, erase_mode:bool, entry_time):
+        msg = None
+        entry_time = _format_time(entry_time)
         if erase_mode:
             if len(self.timestamps[approach][veh_class][movement]) > 0:
                 deleted_entry = self.timestamps[approach][veh_class][movement].pop()
-                print(f'--Erased Vehicle entry at time {deleted_entry} from {approach}:[{veh_class}, {movement}]')
+                msg = f'➖Erased a {approach}:[{veh_class}, {movement}] entry @{deleted_entry}'
+                self.last_action = entry_time
                 try:
                     last_entry = str(self.timestamps[approach][veh_class][movement][-1])
                 except IndexError:
                     last_entry = '-'
             else:
                 last_entry = '-'
-            return last_entry
+            label = last_entry
         else:
-            print(f'++Added Vehicle entry at time {entry_time} for {approach}:[{veh_class}, {movement}]')
-            self.timestamps[approach][veh_class][movement].append(_format_time(entry_time))
-            return str(len(self.timestamps[approach][veh_class][movement]))
+            msg = f'➕Added a {approach}:[{veh_class}, {movement}] entry @{entry_time}'
+            self.timestamps[approach][veh_class][movement].append(entry_time)
+            self.last_action = entry_time
+            label = str(len(self.timestamps[approach][veh_class][movement]))
+        print(msg)  # DEBUG
+        return label, msg
 
 
     def update_vru_counts(self, vru_class, approach, erase_mode:bool, entry_time):
         key = f'vru_{vru_class}'
+        msg=None
+        entry_time = _format_time(entry_time)
         if erase_mode:
             if len(self.get_vru_counts(vru_class, approach)) > 0:
                 deleted_entry = self.get_vru_counts(vru_class, approach).pop()
-                print(f'--Erased VRU {vru_class} at time {deleted_entry} from {approach} approach')
+                msg = f'➖Erased a {approach}:[{vru_class}, VRU] entry @{deleted_entry}'
                 try:
                     new_label = str(self.get_vru_counts(vru_class, approach)[-1])
                 except IndexError:
@@ -53,16 +61,17 @@ class DataManager:
             else:
                 new_label = '-'
         else:
-            self.timestamps[approach][key].append(_format_time(entry_time))
-            print(f'++Added VRU entry at time {entry_time} for {approach}-{vru_class}.')
+            self.timestamps[approach][key].append(entry_time)
+            msg = f'➕Added a {approach}:[{vru_class}, VRU] entry @{entry_time}'
             new_label = str(len(self.get_vru_counts(vru_class, approach)))
-        return new_label
+        print(msg)
+        return new_label, msg
 
 
-    def save_file(self, path, remove_cache=False):
+    def save_file(self, path, cache=False):
         print(f"Saving file@ {path}")
         data = {
-        'video': self.config.video_path,
+        'video_path': self.config.video_path,
         'date': self.config.date,
         'start_time':self.config.start_time,
         'last_action': self.last_action,
@@ -74,12 +83,15 @@ class DataManager:
         }
         with open(path, "w") as f:
             json.dump(data, f, indent=4)
-        if remove_cache:
+        if cache:
+            return '💾 Cache saved'
+        else:
             try:
                 os.remove('data/cache.json')
                 print("--- found and deleted the cache")
             except FileNotFoundError:
                 print("--- cache not found")
+            return f'💾 data saved at {os.path.basename(path)}'
 
 
 
