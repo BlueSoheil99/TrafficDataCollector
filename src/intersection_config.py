@@ -1,8 +1,6 @@
 class IntersectionConfig:
-    def __init__(self, config, from_cache=False):
-        # self.video_path = config['video_path'] # TODO remove the line below later
-        self.video_path = ('/Users/soheil/Library/CloudStorage/OneDrive-UW/0 Research/Sound '
-                             'Transit Project/Codes/TrafficDataCollector/data/0_0_1730564065032_10003_10026_0.mp4')
+    def __init__(self, config):
+        self.video_path = config['video_path']
         self.date = config['date']
         self.start_time = config['start_time']
         self.collection_type = config['collection_type']

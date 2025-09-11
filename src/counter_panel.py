@@ -9,9 +9,6 @@ from src.data_manager import DataManager
 from src.intersection_config import IntersectionConfig
 
 
-
-
-
 class CounterPanel(QWidget):
     def __init__(self, config:IntersectionConfig, get_current_time_callback, from_cache=False):
         super().__init__()
@@ -62,6 +59,7 @@ class CounterPanel(QWidget):
         self.vru_buttons = {}
         for user in config.vru_classifications:
             self.vru_buttons[user] = QPushButton(f"{user}: 0")
+            self.vru_buttons[user].setStyleSheet(btn_stylesheet)
             self.vru_buttons[user].clicked.connect(lambda checked, vru_class=user:
                                                    self.vru_clicked(vru_class))
             self.vru_layout.addWidget(self.vru_buttons[user])
@@ -97,6 +95,7 @@ class CounterPanel(QWidget):
         for row_idx, row_name in enumerate(self.veh_rows):
             for col_idx, col_name in enumerate(self.columns):
                 btn = QPushButton("0")
+                btn.setStyleSheet(btn_stylesheet)
                 btn.clicked.connect(lambda checked, r=row_name, c=col_name: self.table_clicked(r, c))
                 table.setCellWidget(row_idx, col_idx, btn)
         return table
@@ -215,6 +214,10 @@ class CounterPanel(QWidget):
         if text: #not None
             self.message_label.setText(text)
 
+
+btn_stylesheet = """ QPushButton { background-color: white;border: 1px solid lightgray; 
+                                    min-height: 30px; min-width: 100px;}
+                    QPushButton:hover { background-color: lightblue; }"""
 
 def style_message_section(msg_layout, last_action_label, message_label):
     msg_layout.setSpacing(5)  # small gap between label and message

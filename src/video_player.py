@@ -8,10 +8,11 @@ from PyQt6.QtGui import QPixmap, QImage, QIcon
 
 from .intersection_config import  IntersectionConfig
 
+MAX_WIDTH, MAX_HEIGHT = 800, 600  # choose values that fit your screen
+
 
 class VideoPlayer(QWidget):
     def __init__(self, config:IntersectionConfig):
-        #TODO make sure you read config.last_action and video starts from that point
         super().__init__()
 
         # Video capture
@@ -26,6 +27,12 @@ class VideoPlayer(QWidget):
         self.playback_speed = 1.0
         self.rotation_angle = 0
 
+        print(f'last action: {config.last_action}')
+        if config.last_action: # not none
+            self.start_frame = int(_restore_time(config.last_action)*self.fps)
+            print(f'start frame: {self.start_frame}')
+            self.current_frame_idx = self.start_frame
+
         # Overlay for drawing
         ret, frame = self.cap.read()
         if not ret:
@@ -39,7 +46,7 @@ class VideoPlayer(QWidget):
         # Layout
         main_layout = QVBoxLayout(self)
         self.video_label = QLabel()
-        self.video_label.setFixedSize(self.width, self.height)
+        # self.video_label.setFixedSize(self.width, self.height)
         self.video_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         main_layout.addWidget(self.video_label)
 
@@ -207,12 +214,25 @@ class VideoPlayer(QWidget):
         h, w, ch = frame.shape
         bytes_per_line = ch * w
         qimg = QImage(frame.data, w, h, bytes_per_line, QImage.Format.Format_RGB888)
-        self.video_label.setPixmap(QPixmap.fromImage(qimg))
-
+        pixmap = QPixmap.fromImage(qimg)
+        # 🔹 Impose max display size
+        if w > MAX_WIDTH or h > MAX_HEIGHT:
+            pixmap = pixmap.scaled(
+                MAX_WIDTH, MAX_HEIGHT,
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation
+            )
+        self.video_label.setPixmap(pixmap)
+        # self.video_label.setPixmap(QPixmap.fromImage(qimg))
         # Update timestamp
         current_time = self.format_time(self.current_frame_idx)
         total_time = self.format_time(self.total_frames)
         self.timestamp_label.setText(f"{current_time} / {total_time}")
+
+
+
+
+
 
     def format_time(self, frame_idx):
         seconds_total = frame_idx / self.fps
@@ -221,8 +241,14 @@ class VideoPlayer(QWidget):
         milliseconds = int((seconds_total - int(seconds_total)) * 1000)
         return f"{minutes:02}:{seconds:02}.{milliseconds:03}"
 
+
     def get_current_time(self):
         """Return current video time in seconds"""
         # return round(self.current_frame_idx / self.fps, 1)
         return self.current_frame_idx / self.fps
 
+
+
+def _restore_time(formatted_time):
+    minutes, seconds = formatted_time.split(':')
+    return 60.0*int(minutes) + float(seconds)
