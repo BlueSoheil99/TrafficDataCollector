@@ -24,7 +24,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.video_player)
         # Counter panel on the right
         self.counter_panel = CounterPanel(config,
-                                          get_current_time_callback=self.video_player.get_current_time)
+                                          get_current_time_vid_callback=self.video_player.get_current_time_and_video)
         layout.addWidget(self.counter_panel)
 
 

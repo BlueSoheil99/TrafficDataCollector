@@ -1,6 +1,6 @@
 class IntersectionConfig:
     def __init__(self, config):
-        self.video_path = config['video_path']
+        self.video_paths = config['video_paths']
         self.date = config['date']
         self.start_time = config['start_time']
         self.collection_type = config['collection_type']
@@ -10,7 +10,7 @@ class IntersectionConfig:
         self.vru_classifications = ['pedestrian', 'bicycle', 'scooter']
 
         self.timestamps = config.get('timestamps')
-        self.last_action = config.get('last_action')
+        self.last_actions = config.get('last_actions', {})
 
         self.icons = {'erase': 'data/icons/eraser.png',
                       'forward': 'data/icons/forward.png',

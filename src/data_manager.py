@@ -9,11 +9,11 @@ class DataManager:
         self.config = config
         if config.timestamps:
             self.timestamps = config.timestamps
-            self.last_action = config.last_action
+            self.last_actions = config.last_actions
         else:
             self.timestamps = _create_memory(veh_classes=data_dict_params[0], vru_classes=data_dict_params[1],
                                              movements=data_dict_params[2], approaches=self.config.approaches)
-            self.last_action = 0.0 # todo update this
+            self.last_actions = {path: 0.0 for path in config.video_paths}
 
     def get_veh_counts(self, veh_class, movement, approach):
         return self.timestamps[approach][veh_class][movement]
@@ -22,14 +22,15 @@ class DataManager:
         return self.timestamps[approach][f'vru_{vru_user}']
 
 
-    def update_veh_counts(self, veh_class, movement, approach, erase_mode:bool, entry_time):
+    def update_veh_counts(self, veh_class, movement, approach, erase_mode:bool, entry_time_video):
         msg = None
-        entry_time = _format_time(entry_time)
+        entry_time = _format_time(entry_time_video[0])
+        vid_path = entry_time_video[1]
         if erase_mode:
             if len(self.timestamps[approach][veh_class][movement]) > 0:
                 deleted_entry = self.timestamps[approach][veh_class][movement].pop()
                 msg = f'➖Erased a {approach}:[{veh_class}, {movement}] entry @{deleted_entry}'
-                self.last_action = entry_time
+                self.last_actions[vid_path] = entry_time
                 try:
                     last_entry = str(self.timestamps[approach][veh_class][movement][-1])
                 except IndexError:
@@ -40,7 +41,7 @@ class DataManager:
         else:
             msg = f'➕Added a {approach}:[{veh_class}, {movement}] entry @{entry_time}'
             self.timestamps[approach][veh_class][movement].append(entry_time)
-            self.last_action = entry_time
+            self.last_actions[vid_path] = entry_time
             label = str(len(self.timestamps[approach][veh_class][movement]))
         print(msg)  # DEBUG
         return label, msg
@@ -71,10 +72,10 @@ class DataManager:
     def save_file(self, path, cache=False):
         print(f"Saving file@ {path}")
         data = {
-        'video_path': self.config.video_path,
+        'video_paths': self.config.video_paths,
         'date': self.config.date,
         'start_time':self.config.start_time,
-        'last_action': self.last_action,
+        'last_actions': self.last_actions,
         'collection_type': self.config.collection_type,
         'approaches': self.config.approaches,
         'veh_classes':self.config.vehicle_classifications,

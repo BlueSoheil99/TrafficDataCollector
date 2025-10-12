@@ -10,9 +10,9 @@ from src.intersection_config import IntersectionConfig
 
 
 class CounterPanel(QWidget):
-    def __init__(self, config:IntersectionConfig, get_current_time_callback, from_cache=False):
+    def __init__(self, config:IntersectionConfig, get_current_time_vid_callback, from_cache=False):
         super().__init__()
-        self.get_current_time = get_current_time_callback  # function returning current video time
+        self.get_current_time_and_video = get_current_time_vid_callback  # function returning current video time
         self.layout = QVBoxLayout(self)
 
         ### Initiating memory and datamanagere component
@@ -146,7 +146,7 @@ class CounterPanel(QWidget):
         new_label, msg = self.data_manager.update_veh_counts(row, col,
                                                        self.current_approach,
                                                        self.erase_mode,
-                                                       self.get_current_time())
+                                                       self.get_current_time_and_video())
         self.update_message_box(msg)
         btn = self.tables_data[self.current_approach].cellWidget(
             self.veh_rows.index(row), self.columns.index(col)

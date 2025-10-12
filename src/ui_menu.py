@@ -13,11 +13,11 @@ class SetupDialog(QDialog):
 
         layout = QVBoxLayout(self)
 
-        self.video_path = ""
+        self.video_paths = []
 
         # Select video button
-        self.video_btn = QPushButton("Select Video")
-        self.video_btn.clicked.connect(self.select_video)
+        self.video_btn = QPushButton("Select Videos")
+        self.video_btn.clicked.connect(self.select_videos)
         layout.addWidget(self.video_btn)
 
         # --- Observation date ---
@@ -61,18 +61,20 @@ class SetupDialog(QDialog):
         layout.addLayout(buttons_layout)
 
 
-    def select_video(self):
-        path, _ = QFileDialog.getOpenFileName(self, "Select Video")
-        if path:
-            self.video_path = path
-            self.video_btn.setText(path.split("/")[-1])
+    def select_videos(self):
+        paths, _ = QFileDialog.getOpenFileNames(self, "Select Video")
+        if paths:
+            self.video_paths = paths
+            # self.video_btn.setText(paths.split("/")[-1])
+            self.video_btn.setText(f'{len(paths)} video(s) selected')
+        print(self.video_paths)
 
     def get_config(self):
         """Return dict with selected approaches, date, and start time."""
         selected_approaches = [name for name, cb in self.approaches.items() if cb.isChecked()]
         t = self.get_start_time()
         return {
-            "video_path": self.video_path,
+            "video_paths": self.video_paths,
             "collection_type": self.collection_type.currentText(),
             "approaches": selected_approaches,
             "date": self.get_date(),

@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 from PyQt6.QtWidgets import (
-    QWidget, QLabel, QVBoxLayout, QHBoxLayout, QPushButton, QSlider
+    QWidget, QLabel, QVBoxLayout, QHBoxLayout, QPushButton, QSlider, QComboBox, QStackedLayout
 )
 from PyQt6.QtCore import QTimer, Qt
 from PyQt6.QtGui import QPixmap, QImage, QIcon
@@ -11,14 +11,73 @@ from .intersection_config import  IntersectionConfig
 MAX_WIDTH, MAX_HEIGHT = 800, 600  # choose values that fit your screen
 
 
+
+
 class VideoPlayer(QWidget):
-    def __init__(self, config:IntersectionConfig):
+    def __init__(self, config):
         super().__init__()
 
+        self.config = config
+        self.video_paths = config.video_paths   # list of video files
+        self.icons = config.icons
+        self.last_actions = getattr(config, "last_actions", {})
+
+        # Layout
+        main_layout = QVBoxLayout(self)
+        self.video_selector = QComboBox()
+        for path in self.video_paths:
+            self.video_selector.addItem(path.split("/")[-1])
+        main_layout.addWidget(self.video_selector)
+
+        # Stacked layout for multiple players
+        self.stack = QStackedLayout()
+        self.players = []
+        for path in self.video_paths:
+            player = SingleVideoPlayer(
+                video_path=path,
+                icons=self.icons,
+                last_action=self.last_actions.get(path)
+            )
+            self.players.append(player)
+            self.stack.addWidget(player)
+        main_layout.addLayout(self.stack)
+
+        # Connect selector
+        self.video_selector.currentIndexChanged.connect(self.switch_video)
+
+        # Track which one is visible
+        self.current_index = 0
+        self.stack.setCurrentIndex(self.current_index)
+
+    def switch_video(self, index):
+        # Stop current player before switching
+        current_player = self.players[self.current_index]
+        current_player.playing = False
+        current_player.timer.stop()
+
+        # Switch layout to new player
+        self.stack.setCurrentIndex(index)
+        self.current_index = index
+
+    def get_current_time_and_video(self):
+        """Return current time (in seconds) of active video"""
+        current_player = self.players[self.current_index]
+        # return current_player.get_current_time()
+        return current_player.get_current_time(), current_player.video_path
+
+
+
+
+class SingleVideoPlayer(QWidget):
+    # def __init__(self, config:IntersectionConfig):
+    def __init__(self, video_path, icons, last_action=None):
+        super().__init__()
+
+        self.video_path = video_path
         # Video capture
-        self.cap = cv2.VideoCapture(config.video_path)
+        self.cap = cv2.VideoCapture(video_path)
         if not self.cap.isOpened():
-            raise ValueError(f"Cannot open video: {config.video_path}")
+            raise ValueError(f"Cannot open video: {video_path}")
 
         self.total_frames = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
         self.fps = self.cap.get(cv2.CAP_PROP_FPS) or 30
@@ -27,9 +86,9 @@ class VideoPlayer(QWidget):
         self.playback_speed = 1.0
         self.rotation_angle = 0
 
-        print(f'last action: {config.last_action}')
-        if config.last_action: # not none
-            self.start_frame = int(_restore_time(config.last_action)*self.fps)
+        print(f'last action: {last_action}')
+        if last_action: # not none
+            self.start_frame = int(_restore_time(last_action)*self.fps)
             print(f'start frame: {self.start_frame}')
             self.current_frame_idx = self.start_frame
 
@@ -69,12 +128,12 @@ class VideoPlayer(QWidget):
         self.clear_button = QPushButton()
         self.rotate_button = QPushButton()
         self.speed_button = QPushButton()
-        self.play_button.setIcon(QIcon(config.icons['playPause']))
-        self.prev_button.setIcon(QIcon(config.icons['rewind']))
-        self.next_button.setIcon(QIcon(config.icons['forward']))
-        self.clear_button.setIcon(QIcon(config.icons['erase']))
-        self.rotate_button.setIcon(QIcon(config.icons['rotate']))
-        self.speed_button.setIcon(QIcon(config.icons['speed']))
+        self.play_button.setIcon(QIcon(icons['playPause']))
+        self.prev_button.setIcon(QIcon(icons['rewind']))
+        self.next_button.setIcon(QIcon(icons['forward']))
+        self.clear_button.setIcon(QIcon(icons['erase']))
+        self.rotate_button.setIcon(QIcon(icons['rotate']))
+        self.speed_button.setIcon(QIcon(icons['speed']))
         control_layout.addWidget(self.play_button)
         control_layout.addWidget(self.prev_button)
         control_layout.addWidget(self.next_button)
@@ -228,10 +287,6 @@ class VideoPlayer(QWidget):
         current_time = self.format_time(self.current_frame_idx)
         total_time = self.format_time(self.total_frames)
         self.timestamp_label.setText(f"{current_time} / {total_time}")
-
-
-
-
 
 
     def format_time(self, frame_idx):
