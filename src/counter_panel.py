@@ -157,7 +157,7 @@ class CounterPanel(QWidget):
         new_label, msg = self.data_manager.update_vru_counts(vru_class,
                                                        self.current_approach,
                                                        self.erase_mode,
-                                                       self.get_current_time())
+                                                       self.get_current_time_and_video())
         self.update_message_box(msg)
         btn = self.vru_buttons[vru_class]
         btn.setText(f'{vru_class}: {new_label}')

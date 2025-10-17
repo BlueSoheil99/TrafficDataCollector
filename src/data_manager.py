@@ -47,10 +47,11 @@ class DataManager:
         return label, msg
 
 
-    def update_vru_counts(self, vru_class, approach, erase_mode:bool, entry_time):
+    def update_vru_counts(self, vru_class, approach, erase_mode:bool, entry_time_video):
         key = f'vru_{vru_class}'
         msg=None
-        entry_time = _format_time(entry_time)
+        entry_time = _format_time(entry_time_video[0])
+        vid_path = entry_time_video[1]
         if erase_mode:
             if len(self.get_vru_counts(vru_class, approach)) > 0:
                 deleted_entry = self.get_vru_counts(vru_class, approach).pop()
@@ -63,6 +64,7 @@ class DataManager:
                 new_label = '-'
         else:
             self.timestamps[approach][key].append(entry_time)
+            self.last_actions[vid_path] = entry_time
             msg = f'➕Added a {approach}:[{vru_class}, VRU] entry @{entry_time}'
             new_label = str(len(self.get_vru_counts(vru_class, approach)))
         print(msg)
