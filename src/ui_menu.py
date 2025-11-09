@@ -17,7 +17,7 @@ class SetupDialog(QDialog):
         self.data_path = None
 
         # --- Dropdown menu ---
-        collection_types = ["Volume only", 'Near miss evaluation', 'find conflicts']
+        collection_types = ["Volume only", 'Near-Miss Evaluation', 'Find Conflicts']
         self.main_layout.addWidget(QLabel("Select data collection type:"))
         self.collection_type = QComboBox()
         self.collection_type.addItems(collection_types)

@@ -5,15 +5,20 @@ from src.intersection_config import IntersectionConfig
 
 
 class DataManager:
-    def __init__(self, config:IntersectionConfig, data_dict_params:tuple):
+    def __init__(self, config:IntersectionConfig, data_dict_params:tuple=None):
         self.config = config
         if config.timestamps:
             self.timestamps = config.timestamps
             self.last_actions = config.last_actions
         else:
-            self.timestamps = _create_memory(veh_classes=data_dict_params[0], vru_classes=data_dict_params[1],
-                                             movements=data_dict_params[2], approaches=self.config.approaches)
-            self.last_actions = {path: 0.0 for path in config.video_paths}
+            if config.collection_type == "Volume only":
+                self.timestamps = _create_memory_volume(veh_classes=data_dict_params[0], vru_classes=data_dict_params[1],
+                                                 movements=data_dict_params[2], approaches=self.config.approaches)
+                self.last_actions = {path: 0.0 for path in config.video_paths}
+
+            # elif config.collection_type == "Near-Miss Evaluation":
+            #     self.data
+            # elif config.collection_type == "Find Conflicts":
 
     def get_veh_counts(self, veh_class, movement, approach):
         return self.timestamps[approach][veh_class][movement]
@@ -98,7 +103,7 @@ class DataManager:
 
 
 
-def _create_memory(veh_classes, vru_classes, movements, approaches):
+def _create_memory_volume(veh_classes, vru_classes, movements, approaches):
     big_dict={}
     for approach in approaches:
         memory = {}
@@ -108,6 +113,15 @@ def _create_memory(veh_classes, vru_classes, movements, approaches):
             memory[f'vru_{r}'] = []
         big_dict[approach] = memory
     return big_dict
+
+def _create_memory_conflict_detection(veh_classes, vru_classes, movements, approaches):
+    #todo
+    return
+
+def _create_memory_conflict_evaluation(veh_classes, vru_classes, movements, approaches):
+    #todo
+    return
+
 
 def _format_time(seconds):
     mins, secs = divmod(seconds, 60)

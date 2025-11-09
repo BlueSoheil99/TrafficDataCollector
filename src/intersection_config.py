@@ -1,10 +1,13 @@
 class IntersectionConfig:
     def __init__(self, config):
-        self.video_paths = config['video_paths']
-        self.date = config['date']
-        self.start_time = config['start_time']
-        self.collection_type = config['collection_type']
-        self.approaches = config['approaches']
+        self.video_paths = config.get('video_paths')
+        self.collection_type = config.get('collection_type')
+        self.data_path = config.get('data_path')
+
+        self.date = config.get('date')
+        self.start_time = config.get('start_time')
+        self.approaches = config.get('approaches')
+
         self.vehicle_classifications = ['passenger_vehicle', 'bus', 'LRV', 'articulated_truck',
                                         'single_unit_truck', 'motorcycle', 'bicycle', 'scooter']
         self.vru_classifications = ['pedestrian', 'bicycle', 'scooter']

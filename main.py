@@ -8,6 +8,8 @@ from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QHBoxLayout
 from src.ui_menu import SetupDialog, CacheDialog
 from src.video_player import VideoPlayer
 from src.counter_panel import CounterPanel
+from src.conflict_detection_panel import DetectionPanel
+from src.conflict_evaluation_panel import EvaluationPanel
 from src.intersection_config import IntersectionConfig
 
 
@@ -22,10 +24,18 @@ class MainWindow(QMainWindow):
         # Video player on the left
         self.video_player = VideoPlayer(config)
         layout.addWidget(self.video_player)
-        # Counter panel on the right
-        self.counter_panel = CounterPanel(config,
-                                          get_current_time_vid_callback=self.video_player.get_current_time_and_video)
-        layout.addWidget(self.counter_panel)
+        if config.collection_type=="Volume only":
+            self.data_panel = CounterPanel(config,
+                                              get_current_time_vid_callback=self.video_player.get_current_time_and_video)
+        elif config.collection_type=="Near-Miss Evaluation":
+            self.data_panel = EvaluationPanel(config,
+                                              get_current_time_vid_callback=self.video_player.get_current_time_and_video)
+        elif config.collection_type=="Find Conflicts":
+            self.data_panel = DetectionPanel(config,
+                                              get_current_time_vid_callback=self.video_player.get_current_time_and_video)
+        layout.addWidget(self.data_panel)
+
+
 
 
 def cache_exists(cache_path="data/cache.json"):
