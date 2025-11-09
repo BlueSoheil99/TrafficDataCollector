@@ -1,104 +1,39 @@
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QComboBox, QTableWidget, QFormLayout, QLineEdit, QSpinBox,
-    QPushButton, QLabel, QHBoxLayout, QHeaderView, QFileDialog, QFrame, QSizePolicy
+    QWidget, QVBoxLayout, QComboBox, QTableWidget, QTableWidgetItem, QFormLayout, QLineEdit, QSpinBox,
+    QPushButton, QLabel, QHBoxLayout, QHeaderView, QFileDialog, QFrame, QSizePolicy, QMessageBox
 )
 from PyQt6.QtGui import QIcon
 from PyQt6.QtCore import QTimer
 
 from src.data_manager import DataManager
 from src.intersection_config import IntersectionConfig
+from src.message_widget import MessageWidget
 
 
 class DetectionPanel(QWidget):
     def __init__(self, config:IntersectionConfig, get_current_time_vid_callback, from_cache=False):
         super().__init__()
         self.get_current_time_and_video = get_current_time_vid_callback  # function returning current video time
+        self.data_manager = DataManager(config)
+        self.columns = ['timestamp', 'notes']
+
         self.main_layout = QVBoxLayout(self)
 
-        self.data_manager = DataManager(config)
-
-        # create form
-        form = QWidget()
-        layout = QFormLayout(form)
-        form.setLayout(layout)
-
-        self.first_name = QLineEdit(form)
-        self.last_name = QLineEdit(form)
-        self.age = QSpinBox(form, minimum=18, maximum=67)
-        self.age.clear()
-
-        layout.addRow('First Name:', self.first_name)
-        layout.addRow('Last Name:', self.last_name)
-        layout.addRow('Age:', self.age)
-
+        #### Add Buttons
+        ## Add 'add' btn
         add_btn = QPushButton('Add')
-        add_btn.clicked.connect(self.add_conflict)
-        layout.addRow(add_btn)
-        self.main_layout.addWidget(form)
-
-
-
+        add_btn.clicked.connect(self.add_clicked)
+        self.main_layout.addWidget(add_btn)
+        ## Add 'erase' btn
         self.erase_button = QPushButton("Erase")
-        # delete_action.triggered.connect(self.delete)
-        # toolbar.addAction(delete_action)
-        # dock.setWidget(form)
         self.erase_button.setIcon(QIcon(config.icons['erase']))
         self.erase_button.clicked.connect(self.erase_clicked)
-
-        # layout.addWidget(self.erase_button)
         self.main_layout.addWidget(self.erase_button)
         self.create_line()
 
-
-        #### Approach dropdown and Mode selection
-        self.selection_layout = QHBoxLayout(self)
-
-        self.enter_button = QPushButton("enter")
-        # self.enter_button.setIcon(QIcon(config.icons['erase']))
-        self.enter_button.clicked.connect(self.erase_clicked)
-        self.selection_layout.addWidget(self.enter_button)
-        self.main_layout.addLayout(self.selection_layout)
-        # # add eraser
-        self.erase_mode=False
-        self.erase_button = QPushButton("Erase")
-        self.erase_button.setIcon(QIcon(config.icons['erase']))
-        self.selection_layout.addWidget(self.erase_button)
-        self.erase_button.clicked.connect(self.erase_clicked)
-        self.main_layout.addLayout(self.selection_layout)
-
-        self.create_line()
-
-        self.table = QTableWidget(self)
-        self.table.setColumnCount(3)
+        #### Add Table
+        self.table = self.create_table(config)
         self.main_layout.addWidget(self.table)
-
-        # #### vehicle count Table
-        # self.layout.addWidget(QLabel('Vehicle counts'))
-        # self.table = QTableWidget()  # probably don't need this line
-        # self.table_layout = QHBoxLayout()
-        # self.table_layout.addWidget(self.table)
-        # self.main_layout.addLayout(self.table_layout)
-        # # Store tables, memory
-        # self.tables_data = {}
-        # self.table = self.create_table()
-        # # Show first approach table
-        # self.current_approach = config.approaches[0]
-        # self.show_table(self.current_approach)
-        # self.update_table_display() # to make sure loaded cache is show from the beginning
-        # self.approach_select.currentTextChanged.connect(self.on_approach_changed)
-
-        ### VRU COUNTS
-        # self.layout.addWidget(QLabel("VRU counts"))
-        # self.vru_layout = QHBoxLayout()
-        # self.vru_buttons = {}
-        # for user in config.vru_classifications:
-        #     self.vru_buttons[user] = QPushButton(f"{user}: 0")
-        #     self.vru_buttons[user].setStyleSheet(btn_stylesheet)
-        #     self.vru_buttons[user].clicked.connect(lambda checked, vru_class=user:
-        #                                            self.vru_clicked(vru_class))
-        #     self.vru_layout.addWidget(self.vru_buttons[user])
-        # self.layout.addLayout(self.vru_layout)
-
         self.create_line()
 
         ### SAVE BUTTON
@@ -107,33 +42,36 @@ class DetectionPanel(QWidget):
         self.main_layout.addWidget(self.save_btn)
 
         ### MESSAGE section
-        self.msg_layout = QHBoxLayout()
-        self.last_action_label = QLabel("Last Action:")
-        # self.msg_layout.addWidget(self.last_action_label)
-        self.message_label = QLabel()
-        # self.msg_layout.addWidget(self.message_label)
-        style_message_section(self.msg_layout, self.last_action_label, self.message_label)
-        self.main_layout.addLayout(self.msg_layout)
+        self.msg_widget = MessageWidget()
+        self.main_layout.addWidget(self.msg_widget)
 
-        #Create a timer to autosave cache
+        # Create a timer to autosave cache
         self.cache_timer = QTimer(self)
         self.cache_timer.timeout.connect(self.auto_save_cache)
         self.cache_timer.start(30000)  # 30,000 ms = 30 seconds
 
 
-    def create_table(self):
-        table = QTableWidget()
-        table.setRowCount(len(self.veh_rows))
-        table.setColumnCount(len(self.columns))
+    def create_table(self, config:IntersectionConfig):
+        table = QTableWidget(self)
+        table.setColumnCount(2)
+        table.setColumnWidth(0, 50)
+        table.setColumnWidth(1, 150)
         table.setHorizontalHeaderLabels(self.columns)
-        table.setVerticalHeaderLabels(self.veh_rows)
-        for row_idx, row_name in enumerate(self.veh_rows):
-            for col_idx, col_name in enumerate(self.columns):
-                btn = QPushButton("0")
-                btn.setStyleSheet(btn_stylesheet)
-                btn.clicked.connect(lambda checked, r=row_name, c=col_name: self.table_clicked(r, c))
-                table.setCellWidget(row_idx, col_idx, btn)
+        self._load_from_cache(table, config)
+        table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        table.setSizeAdjustPolicy(QTableWidget.SizeAdjustPolicy.AdjustToContents)
+        table.show()
         return table
+
+    def _load_from_cache(self, table, config:IntersectionConfig):
+        if config.timestamps:
+            cache = config.timestamps
+            table.setRowCount(len(cache))
+            row = 0
+            for e in cache:
+                table.setItem(row, 0, QTableWidgetItem(e['timestamp']))
+                table.setItem(row, 1, QTableWidgetItem(e['notes']))
+                row += 1
 
     def create_line(self):
         line = QFrame()
@@ -141,98 +79,33 @@ class DetectionPanel(QWidget):
         line.setFrameShadow(QFrame.Shadow.Sunken)
         self.main_layout.addWidget(line)
 
-    def update_table_display(self):
-        for veh_class in self.veh_rows:
-            for movement in self.columns:
-                counts = self.data_manager.get_veh_counts(veh_class, movement, self.current_approach)
-                if self.erase_mode:
-                    try:
-                        # label = str(self.timestamps[self.current_approach][row][col][-1])
-                        label = str(counts[-1])
-                    except IndexError:
-                        label = '-'
-                else:
-                    # label = str(len(self.timestamps[self.current_approach][row][col]))
-                    label = str(len(counts))
-
-                btn = self.tables_data[self.current_approach].cellWidget(
-                    self.veh_rows.index(veh_class), self.columns.index(movement)
-                )
-                btn.setText(label)
-
-    def update_VRU_display(self):
-        for user in self.vru_rows:
-            btn = self.vru_buttons[user]
-            counts = self.data_manager.get_vru_counts(user, self.current_approach)
-            if self.erase_mode:
-                try:
-                    label = str(counts[-1])
-                except IndexError:
-                    label = '-'
-            else:
-                label = str(len(counts))
-            btn.setText(f'{user}: {label}')
-
-    def table_clicked(self, row, col):
-        """
-        increase count and store timestamp if erase_mode is off,
-        removes last entry if erase_mode is on
-        """
-        new_label, msg = self.data_manager.update_veh_counts(row, col,
-                                                       self.current_approach,
-                                                       self.erase_mode,
-                                                       self.get_current_time_and_video())
-        self.update_message_box(msg)
-        btn = self.tables_data[self.current_approach].cellWidget(
-            self.veh_rows.index(row), self.columns.index(col)
-        )
-        btn.setText(new_label)
-
-    def vru_clicked(self, vru_class):
-        new_label, msg = self.data_manager.update_vru_counts(vru_class,
-                                                       self.current_approach,
-                                                       self.erase_mode,
-                                                       self.get_current_time_and_video())
-        self.update_message_box(msg)
-        btn = self.vru_buttons[vru_class]
-        btn.setText(f'{vru_class}: {new_label}')
-
-    def add_conflict(self):
-        # todo ---------
+    def add_clicked(self):
+        entry_time = _format_time(self.get_current_time_and_video()[0])
+        row_num = self.table.rowCount()
+        self.table.insertRow(row_num)
+        self.table.setItem(row_num, 0, QTableWidgetItem(entry_time))
+        self.msg_widget.update_message_box(f'Added entry @{entry_time}')
         return
+
 
     def erase_clicked(self):
-        if self.erase_mode:
-            self.erase_mode = False
-            self.erase_button.setStyleSheet('')
-        else:
-            self.erase_mode = True
-            self.erase_button.setStyleSheet("background-color: salmon;")
-        self.update_table_display()
-        self.update_VRU_display()
+        current_row = self.table.currentRow()
+        if current_row < 0:
+            return QMessageBox.warning(self, 'Warning', 'Please select a record to delete')
 
-    def enter_clicked(self):
-        ## TODO---------
-        return
+        button = QMessageBox.question(
+            self,
+            'Confirmation',
+            'Are you sure that you want to delete the selected row?',
+            QMessageBox.StandardButton.Yes |
+            QMessageBox.StandardButton.No
+        )
+        if button == QMessageBox.StandardButton.Yes:
+            entry_time = self.table.item(current_row, self.columns.index('timestamp')).text()
+            self.table.removeRow(current_row)
+            self.msg_widget.update_message_box(f'Removed enty @{entry_time}')
 
-    def show_table(self, approach):
-        if self.current_approach:
-            self.table_layout.removeWidget(self.table)
-            self.table.hide()
-        self.table = self.tables_data[approach]
-        self.table_layout.addWidget(self.table)
-        #todo check these
-        # self.table.horizontalHeader().setStretchLastSection(True)
-        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        self.table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        self.table.setSizeAdjustPolicy(QTableWidget.SizeAdjustPolicy.AdjustToContents)
-        self.table.show()
-        self.current_approach = approach
 
-    def on_approach_changed(self, approach):
-        self.show_table(approach)
-        self.update_table_display()
-        self.update_VRU_display()
 
     def save_data(self):
         file_path, _ = QFileDialog.getSaveFileName(
@@ -242,53 +115,35 @@ class DetectionPanel(QWidget):
             "JSON Files (*.json);;All Files (*)"
         )
         if file_path:
-            msg = self.data_manager.save_file(file_path, cache=False)
-            self.update_message_box(msg)
+            msg = self.data_manager.save_file(file_path, cache=False, data=self.get_table_data())
+            self.msg_widget.update_message_box(msg)
 
     def auto_save_cache(self):
         """Save cache automatically every 1 minute"""
         # pick a cache path (temporary file or fixed location)
         cache_path = "data/cache.json"
-        msg = self.data_manager.save_file(cache_path, cache=True)
-        # self.message_label.setText("💾 Cache saved")
-        self.update_message_box(msg)
+        msg = self.data_manager.save_file(cache_path, cache=True, data=self.get_table_data())
+        self.msg_widget.update_message_box(msg)
 
-    def update_message_box(self, text):
-        if text: #not None
-            self.message_label.setText(text)
+    def get_table_data(self):
+        data = []
+        for row in range(self.table.rowCount()):
+            item = {}
+            for idx, col in enumerate(self.columns):
+                val = self.table.item(row, idx)
+                if val:
+                    item[col] = self.table.item(row, idx).text() # string values
+                else:
+                    item[col] = self.table.item(row, idx) # None values
+
+            data.append(item)
+        return data
 
 
 btn_stylesheet = """ QPushButton { background-color: white;border: 1px solid lightgray; 
                                     min-height: 30px; min-width: 100px;}
                     QPushButton:hover { background-color: lightblue; }"""
-
-def style_message_section(msg_layout, last_action_label, message_label):
-    msg_layout.setSpacing(5)  # small gap between label and message
-    msg_layout.setContentsMargins(0, 0, 0, 0)  # remove extra padding around layout
-
-    # Left-side label
-    last_action_label.setStyleSheet("""
-        QLabel {
-            font-family: 'Segoe UI', Arial, sans-serif;
-            font-weight: normal;
-            color: #2C3E50;   /* subtle dark color */
-        }
-    """)
-    msg_layout.addWidget(last_action_label)
-
-    # Message label
-    message_label.setStyleSheet("""
-        QLabel {
-            font-family: 'Courier New', Courier, monospace;
-            font-weight: normal;
-            color: #555555;
-            background-color: #F7F7F7;
-            border-radius: 3px;
-            padding: 2px 6px;
-        }
-    """)
-    # Let the message stretch to fill remaining horizontal space
-    message_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-    msg_layout.addWidget(message_label)
-
-
+def _format_time(seconds):
+    mins, secs = divmod(seconds, 60)
+    formatted_time =  f'{int(mins):02d}:{secs:04.1f}'
+    return formatted_time

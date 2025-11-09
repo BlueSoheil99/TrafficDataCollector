@@ -15,10 +15,10 @@ class DataManager:
                 self.timestamps = _create_memory_volume(veh_classes=data_dict_params[0], vru_classes=data_dict_params[1],
                                                  movements=data_dict_params[2], approaches=self.config.approaches)
                 self.last_actions = {path: 0.0 for path in config.video_paths}
+            # elif config.collection_type == "Find Conflicts":
 
             # elif config.collection_type == "Near-Miss Evaluation":
             #     self.data
-            # elif config.collection_type == "Find Conflicts":
 
     def get_veh_counts(self, veh_class, movement, approach):
         return self.timestamps[approach][veh_class][movement]
@@ -76,19 +76,10 @@ class DataManager:
         return new_label, msg
 
 
-    def save_file(self, path, cache=False):
+    def save_file(self, path, cache=False, data=None):
+        # data is used when collecting or evaluating conflicts.
         print(f"Saving file@ {path}")
-        data = {
-        'video_paths': self.config.video_paths,
-        'date': self.config.date,
-        'start_time':self.config.start_time,
-        'last_actions': self.last_actions,
-        'collection_type': self.config.collection_type,
-        'approaches': self.config.approaches,
-        'veh_classes':self.config.vehicle_classifications,
-        'vru_classes':self.config.vru_classifications,
-        'timestamps': self.timestamps
-        }
+        data = self._prepare_data(data)
         with open(path, "w") as f:
             json.dump(data, f, indent=4)
         if cache:
@@ -100,6 +91,26 @@ class DataManager:
             except FileNotFoundError:
                 print("--- cache not found")
             return f'💾 data saved at {os.path.basename(path)}'
+
+    def _prepare_data(self, data):
+        if self.config.collection_type=='Volume only':
+            return  {
+                'video_paths': self.config.video_paths,
+                'date': self.config.date,
+                'start_time': self.config.start_time,
+                'last_actions': self.last_actions,
+                'collection_type': self.config.collection_type,
+                'approaches': self.config.approaches,
+                'veh_classes': self.config.vehicle_classifications,
+                'vru_classes': self.config.vru_classifications,
+                'timestamps': self.timestamps
+            }
+        else:
+            return {
+                'video_paths': self.config.video_paths,
+                'collection_type': self.config.collection_type,
+                'timestamps': data
+            }
 
 
 

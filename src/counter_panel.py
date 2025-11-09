@@ -7,6 +7,7 @@ from PyQt6.QtCore import QTimer
 
 from src.data_manager import DataManager
 from src.intersection_config import IntersectionConfig
+from src.message_widget import MessageWidget
 
 
 class CounterPanel(QWidget):
@@ -72,13 +73,8 @@ class CounterPanel(QWidget):
         self.layout.addWidget(self.save_btn)
 
         ### MESSAGE section
-        self.msg_layout = QHBoxLayout()
-        self.last_action_label = QLabel("Last Action:")
-        # self.msg_layout.addWidget(self.last_action_label)
-        self.message_label = QLabel()
-        # self.msg_layout.addWidget(self.message_label)
-        style_message_section(self.msg_layout, self.last_action_label, self.message_label)
-        self.layout.addLayout(self.msg_layout)
+        self.msg_widget= MessageWidget()
+        self.layout.addWidget(self.msg_widget)
 
         #Create a timer to autosave cache
         self.cache_timer = QTimer(self)
@@ -147,7 +143,7 @@ class CounterPanel(QWidget):
                                                        self.current_approach,
                                                        self.erase_mode,
                                                        self.get_current_time_and_video())
-        self.update_message_box(msg)
+        self.msg_widget.update_message_box(msg)
         btn = self.tables_data[self.current_approach].cellWidget(
             self.veh_rows.index(row), self.columns.index(col)
         )
@@ -158,7 +154,7 @@ class CounterPanel(QWidget):
                                                        self.current_approach,
                                                        self.erase_mode,
                                                        self.get_current_time_and_video())
-        self.update_message_box(msg)
+        self.msg_widget.update_message_box(msg)
         btn = self.vru_buttons[vru_class]
         btn.setText(f'{vru_class}: {new_label}')
 
@@ -200,7 +196,7 @@ class CounterPanel(QWidget):
         )
         if file_path:
             msg = self.data_manager.save_file(file_path, cache=False)
-            self.update_message_box(msg)
+            self.msg_widget.update_message_box(msg)
 
     def auto_save_cache(self):
         """Save cache automatically every 1 minute"""
@@ -208,44 +204,9 @@ class CounterPanel(QWidget):
         cache_path = "data/cache.json"
         msg = self.data_manager.save_file(cache_path, cache=True)
         # self.message_label.setText("💾 Cache saved")
-        self.update_message_box(msg)
-
-    def update_message_box(self, text):
-        if text: #not None
-            self.message_label.setText(text)
+        self.msg_widget.update_message_box(msg)
 
 
 btn_stylesheet = """ QPushButton { background-color: white;border: 1px solid lightgray; 
                                     min-height: 30px; min-width: 100px;}
                     QPushButton:hover { background-color: lightblue; }"""
-
-def style_message_section(msg_layout, last_action_label, message_label):
-    msg_layout.setSpacing(5)  # small gap between label and message
-    msg_layout.setContentsMargins(0, 0, 0, 0)  # remove extra padding around layout
-
-    # Left-side label
-    last_action_label.setStyleSheet("""
-        QLabel {
-            font-family: 'Segoe UI', Arial, sans-serif;
-            font-weight: normal;
-            color: #2C3E50;   /* subtle dark color */
-        }
-    """)
-    msg_layout.addWidget(last_action_label)
-
-    # Message label
-    message_label.setStyleSheet("""
-        QLabel {
-            font-family: 'Courier New', Courier, monospace;
-            font-weight: normal;
-            color: #555555;
-            background-color: #F7F7F7;
-            border-radius: 3px;
-            padding: 2px 6px;
-        }
-    """)
-    # Let the message stretch to fill remaining horizontal space
-    message_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-    msg_layout.addWidget(message_label)
-
-
