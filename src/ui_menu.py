@@ -1,9 +1,12 @@
+import json
+
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QPushButton, QFileDialog,
     QLabel, QHBoxLayout, QCheckBox, QDateEdit, QTimeEdit,
     QComboBox, QStackedLayout, QWidget, QMessageBox
 )
 from PyQt6.QtCore import QDate, QTime, Qt
+
 
 
 class SetupDialog(QDialog):
@@ -15,6 +18,14 @@ class SetupDialog(QDialog):
 
         self.video_paths = []
         self.data_path = None
+        self.existing_work_path = None
+        self.existing_work = None
+
+        # load existing work
+        self.main_layout.addWidget(QLabel("Load Existing Work:"))
+        self.load_btn = QPushButton("Select .json file")
+        self.load_btn.clicked.connect(self._select_existing_clicked)
+        self.main_layout.addWidget(self.load_btn)
 
         # --- Dropdown menu ---
         collection_types = ["Volume only", 'Near-Miss Evaluation', 'Find Conflicts']
@@ -43,7 +54,6 @@ class SetupDialog(QDialog):
         self.type_stack.addWidget(data_widget)
         ### add stack to the main layout
         self.main_layout.addLayout(self.type_stack)
-
 
         # OK/Cancel
         buttons_layout = QHBoxLayout()
@@ -92,19 +102,26 @@ class SetupDialog(QDialog):
 
 
     def _click_ok(self):
-        # if len(self.video_paths)==0:
-        if not self.video_paths:
-            self._run_msg_box("Missing Videos",
-                              "Please select at least one video before proceeding.")
-            return
-        if  self._is_collection_type_volume():
-            self.accept()
+        if self.existing_work_path:
+            try:
+                with open(self.existing_work_path, "r") as f:
+                    self.existing_work = json.load(f)
+            except Exception as e:
+                self._run_msg_box("Error in loading JSON", e)
         else:
-            if self.data_path is None:
-                self._run_msg_box("Missing Metadata",
-                                  "Please select the metadata file before proceeding.")
+            # if len(self.video_paths)==0:
+            if not self.video_paths:
+                self._run_msg_box("Missing Videos",
+                                  "Please select at least one video before proceeding.")
                 return
-            self.accept()
+            if  self._is_collection_type_volume():
+                self.accept()
+            else:
+                if self.data_path is None:
+                    self._run_msg_box("Missing Metadata",
+                                      "Please select the metadata file before proceeding.")
+                    return
+        self.accept()
 
     def _run_msg_box(self, title, txt):
         msg = QMessageBox(self)
@@ -114,6 +131,13 @@ class SetupDialog(QDialog):
         msg.setStandardButtons(QMessageBox.StandardButton.Ok)
         msg.exec()
 
+    def _set_widgets_enabled(self, enabled: bool):
+        self.collection_type.setEnabled(enabled)
+        self.video_btn.setEnabled(enabled)
+        self.volume_widget.setEnabled(enabled)
+        self.data_btn.setEnabled(enabled)
+
+
     def _select_videos(self):
         paths, _ = QFileDialog.getOpenFileNames(self, "Select Video")
         if paths:
@@ -121,6 +145,19 @@ class SetupDialog(QDialog):
             # self.video_btn.setText(paths.split("/")[-1])
             self.video_btn.setText(f'{len(paths)} video(s) selected')
         print(self.video_paths)
+
+    def _select_existing_clicked(self):
+        path, _ = QFileDialog.getOpenFileName(self,
+                                              "Select the Existing data",
+                                              '',
+                                              'JSON Files (*.json)')
+        if path:
+            self.existing_work_path = path
+            self.load_btn.setText(path.split("/")[-1])
+            # disable all other buttons
+            self._set_widgets_enabled(False)
+
+        print(self.existing_work_path)
 
     def _select_data(self):
         path, _ = QFileDialog.getOpenFileName(self, "Select Metadata")
@@ -133,7 +170,9 @@ class SetupDialog(QDialog):
 
     def get_config(self):
         """Return dict with selected approaches, date, and start time."""
-        if self._is_collection_type_volume():
+        if self.existing_work_path:
+            return self.existing_work
+        elif self._is_collection_type_volume():
             selected_approaches = [name for name, cb in self.approaches.items() if cb.isChecked()]
             t = self.get_start_time()
             return {

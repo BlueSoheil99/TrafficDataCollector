@@ -9,7 +9,7 @@ To open the app:
   - activate the environment `conda activate traffic_counter`
   - run `python main.py`
   
-- Alternatively, you can make a new environment and manually install PyQt6, OpenCV, and Numpy.
+- Alternatively, you can make a new environment with python version 3.11 and then manually install PyQt6, OpenCV, and Numpy. 
 
 Before you count volume:
 - get familiar with the intersection properties including 
