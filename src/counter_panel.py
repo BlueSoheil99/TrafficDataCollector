@@ -19,7 +19,7 @@ class CounterPanel(QWidget):
         ### Initiating memory and datamanagere component
         self.veh_rows = config.vehicle_classifications
         self.vru_rows = config.vru_classifications
-        self.columns = ['Left', 'Through', 'Right']  # movements
+        self.columns = config.movements
         self.data_manager = DataManager(config,
                                         (self.veh_rows, self.vru_rows, self.columns))
 
@@ -209,4 +209,5 @@ class CounterPanel(QWidget):
 
 btn_stylesheet = """ QPushButton { background-color: white;border: 1px solid lightgray; 
                                     min-height: 30px; min-width: 100px;}
-                    QPushButton:hover { background-color: lightblue; }"""
+                    QPushButton:hover { background-color: aliceblue; }
+                    QPushButton:pressed {   background-color: lightgreen;}"""

@@ -8,6 +8,7 @@ class IntersectionConfig:
         self.start_time = config.get('start_time')
         self.approaches = config.get('approaches')
 
+        self.movements = ['Left', 'Through', 'Right']
         self.vehicle_classifications = ['passenger_vehicle', 'bus', 'LRV', 'articulated_truck',
                                         'single_unit_truck', 'motorcycle', 'bicycle', 'scooter']
         self.vru_classifications = ['pedestrian', 'bicycle', 'scooter']
