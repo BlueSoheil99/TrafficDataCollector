@@ -95,6 +95,8 @@ class SingleVideoPlayer(QWidget):
         self.current_frame_idx = 0
         self.playing = False
         self.playback_speed = 1.0
+        self.fast_speed = 1.5
+        self.slow_speed = 0.75
         self.rotation_angle = 0
 
         print(f'last action: {last_action}')
@@ -138,19 +140,21 @@ class SingleVideoPlayer(QWidget):
         self.next_button = QPushButton()
         self.clear_button = QPushButton()
         self.rotate_button = QPushButton()
-        self.speed_button = QPushButton()
+        self.slow_down_button = QPushButton(f'{self.slow_speed}X')
+        self.speed_up_button = QPushButton(f'{self.fast_speed}X')  # this will be a hold/release button
         self.play_button.setIcon(QIcon(icons['playPause']))
         self.prev_button.setIcon(QIcon(icons['rewind']))
         self.next_button.setIcon(QIcon(icons['forward']))
         self.clear_button.setIcon(QIcon(icons['erase']))
         self.rotate_button.setIcon(QIcon(icons['rotate']))
-        self.speed_button.setIcon(QIcon(icons['speed']))
+        # self.slow_down_button.setIcon(QIcon(icons['speed']))
         control_layout.addWidget(self.play_button)
         control_layout.addWidget(self.prev_button)
         control_layout.addWidget(self.next_button)
         control_layout.addWidget(self.clear_button)
         control_layout.addWidget(self.rotate_button)
-        control_layout.addWidget(self.speed_button)
+        control_layout.addWidget(self.slow_down_button)
+        control_layout.addWidget(self.speed_up_button)
         main_layout.addLayout(control_layout)
         # Connect signals
         self.play_button.clicked.connect(self.toggle_play)
@@ -158,7 +162,9 @@ class SingleVideoPlayer(QWidget):
         self.next_button.clicked.connect(self.next_frame)
         self.clear_button.clicked.connect(self.clear_overlay)
         self.rotate_button.clicked.connect(self.rotate_frame)
-        self.speed_button.clicked.connect(self.change_playback_speed)
+        self.slow_down_button.clicked.connect(self.change_playback_speed)
+        self.speed_up_button.pressed.connect(self.start_fast_playback)
+        self.speed_up_button.released.connect(self.restore_normal_speed)
 
         # Timer for playback
         self.timer = QTimer()
@@ -342,14 +348,29 @@ class SingleVideoPlayer(QWidget):
 
     def change_playback_speed(self):
         if self.playback_speed == 1.0:
-            self.playback_speed = 0.75
-            self.speed_button.setStyleSheet("background-color: lightgray;")
-        elif self.playback_speed == 0.75:
+            self.playback_speed = self.slow_speed
+            self.slow_down_button.setStyleSheet("background-color: lightgray;")
+        elif self.playback_speed == self.slow_speed:
             self.playback_speed = 1.0
-            self.speed_button.setStyleSheet("")
+            self.slow_down_button.setStyleSheet("")
         if self.playing:
             self.start_timer()
 
+    def start_fast_playback(self):
+        """When speedup button is pressed, temporarily speed up playback."""
+        self.normal_speed = self.playback_speed  # save current normal speed
+        self.playback_speed = self.fast_speed  # set fast speed
+        self.speed_up_button.setStyleSheet("background-color: lightgray;")
+
+        if self.playing:
+            self.start_timer()  # restart timer with new speed
+
+    def restore_normal_speed(self):
+        """When speedup  button is released, restore original playback speed."""
+        self.playback_speed = self.normal_speed
+        self.speed_up_button.setStyleSheet("")
+        if self.playing:
+            self.start_timer()  # restart timer with normal speed
 
     def update_frame(self):
         if not self.playing:
