@@ -3,7 +3,7 @@ import json
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QPushButton, QFileDialog,
     QLabel, QHBoxLayout, QCheckBox, QDateEdit, QTimeEdit,
-    QComboBox, QStackedLayout, QWidget, QMessageBox
+    QComboBox, QStackedLayout, QWidget, QMessageBox, QFrame
 )
 from PyQt6.QtCore import QDate, QTime, Qt
 
@@ -26,6 +26,11 @@ class SetupDialog(QDialog):
         self.load_btn = QPushButton("Select .json file")
         self.load_btn.clicked.connect(self._select_existing_clicked)
         self.main_layout.addWidget(self.load_btn)
+
+        line = QFrame()
+        line.setFrameShape(QFrame.Shape.HLine)
+        line.setFrameShadow(QFrame.Shadow.Sunken)
+        self.main_layout.addWidget(line)
 
         # --- Dropdown menu ---
         collection_types = ["Volume only", 'Near-Miss Evaluation', 'Find Conflicts']
@@ -211,7 +216,8 @@ class CacheDialog(QDialog):
         self.setFixedSize(350, 120)
 
         # Message label
-        message = QLabel("Cache found. Do you want to reload your previous process?")
+        message = QLabel("Cache found. Do you want to reload your previous process? "
+                         "If select 'No', the cache will be removed.")
         message.setWordWrap(True)
 
         # Yes/No buttons
