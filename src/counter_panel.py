@@ -9,10 +9,12 @@ from src.data_manager import DataManager
 from src.intersection_config import IntersectionConfig
 from src.message_widget import MessageWidget
 
-
+MIN_WIDTH, MAX_WIDTH = 300 ,500
 class CounterPanel(QWidget):
     def __init__(self, config:IntersectionConfig, get_current_time_vid_callback, from_cache=False):
         super().__init__()
+        self.setMinimumWidth(MIN_WIDTH)
+        self.setMaximumWidth(MAX_WIDTH)
         self.get_current_time_and_video = get_current_time_vid_callback  # function returning current video time
         self.layout = QVBoxLayout(self)
 

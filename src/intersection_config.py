@@ -9,8 +9,8 @@ class IntersectionConfig:
         self.approaches = config.get('approaches')
 
         self.movements = ['Left', 'Through', 'Right']
-        self.vehicle_classifications = ['Passenger_vehicle', 'Bus', 'LRV', 'Articulated_truck',
-                                        'Single_unit_truck', 'Motorcycle', 'Bicycle', 'Scooter, etc.']
+        self.vehicle_classifications = ['Passenger_vehicle', 'Bus',  'Van', 'Single_unit_truck', 'Articulated_truck',
+                                        'LRV', 'Motorcycle', 'Bicycle', 'Scooter, etc.']
         # self.vru_classifications = ['pedestrian', 'bicycle', 'scooter']
         self.vru_classifications = ['Pedestrian', 'Bicycle', 'Mobility Aid User', 'Personal Mobility Device']
 
