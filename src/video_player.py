@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 from PyQt6.QtWidgets import (
-    QWidget, QLabel, QVBoxLayout, QHBoxLayout, QPushButton, QSlider, QComboBox, QStackedLayout
+    QWidget, QLabel, QVBoxLayout, QHBoxLayout, QPushButton, QSlider, QComboBox, QStackedLayout, QSizePolicy
 )
 from PyQt6.QtCore import QTimer, Qt
 from PyQt6.QtGui import QPixmap, QImage, QIcon, QShortcut, QKeySequence
@@ -9,6 +9,8 @@ from PyQt6.QtGui import QPixmap, QImage, QIcon, QShortcut, QKeySequence
 from .intersection_config import  IntersectionConfig
 
 MAX_WIDTH, MAX_HEIGHT = 800, 600  # choose values that fit your screen
+# MAX_WIDTH, MAX_HEIGHT = 1280, 720
+# MAX_WIDTH, MAX_HEIGHT = 960, 540
 
 
 
@@ -119,6 +121,7 @@ class SingleVideoPlayer(QWidget):
         main_layout = QVBoxLayout(self)
         self.video_label = QLabel()
         # self.video_label.setFixedSize(self.width, self.height)
+        self.video_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.video_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         main_layout.addWidget(self.video_label)
 
@@ -230,25 +233,6 @@ class SingleVideoPlayer(QWidget):
     def clear_overlay(self):
         self.global_overlay[:] = 0
         self.show_frame(self.current_frame_idx)
-
-    # def _map_to_frame(self, pos):
-    #     """Map QLabel coordinates to video frame coordinates."""
-    #     label_w = self.video_label.width()
-    #     label_h = self.video_label.height()
-    #     frame_h, frame_w = self.global_overlay.shape[:2]
-    #
-    #     x_ratio = frame_w / label_w
-    #     y_ratio = frame_h / label_h
-    #     x = int(pos.x() * x_ratio)
-    #     y = int(pos.y() * y_ratio)
-    #
-    #     if self.rotation_angle == 90:
-    #         x, y = y, frame_w - x
-    #     elif self.rotation_angle == 180:
-    #         x, y = frame_w - x, frame_h - y
-    #     elif self.rotation_angle == 270:
-    #         x, y = frame_h - y, x
-    #     return x, y
 
     def _map_to_frame(self, pos):
         """
@@ -392,13 +376,6 @@ class SingleVideoPlayer(QWidget):
             self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
             self.current_frame_idx = 0
 
-    # def show_frame(self, frame_idx):
-    #     self.cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
-    #     ret, frame = self.cap.read()
-    #     if ret:
-    #         self.show_cv_frame(frame)
-    #         self.slider.setValue(frame_idx)
-
     def show_frame(self, frame_idx):
         self.cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
         ret, frame = self.cap.read()
@@ -407,43 +384,13 @@ class SingleVideoPlayer(QWidget):
             self.show_cv_frame(frame)
             self.slider.setValue(frame_idx)
 
-    # def show_cv_frame(self, frame):
-    #     # Apply overlay
-    #     frame = cv2.addWeighted(frame, 1.0, self.global_overlay, 1.0, 0)
-    #     frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    #     # Apply rotation
-    #     if self.rotation_angle == 90:
-    #         frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
-    #     elif self.rotation_angle == 180:
-    #         frame = cv2.rotate(frame, cv2.ROTATE_180)
-    #     elif self.rotation_angle == 270:
-    #         frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
-    #     else:
-    #         pass  # 0 degree
-    #
-    #     # frame_rgb = cv2.cvtColor(frame_with_overlay, cv2.COLOR_BGR2RGB)
-    #     h, w, ch = frame.shape
-    #     bytes_per_line = ch * w
-    #     qimg = QImage(frame.data, w, h, bytes_per_line, QImage.Format.Format_RGB888)
-    #     pixmap = QPixmap.fromImage(qimg)
-    #     # 🔹 Impose max display size
-    #     if w > MAX_WIDTH or h > MAX_HEIGHT:
-    #         pixmap = pixmap.scaled(
-    #             MAX_WIDTH, MAX_HEIGHT,
-    #             Qt.AspectRatioMode.KeepAspectRatio,
-    #             Qt.TransformationMode.SmoothTransformation
-    #         )
-    #     self.video_label.setPixmap(pixmap)
-    #     # self.video_label.setPixmap(QPixmap.fromImage(qimg))
-    #     # Update timestamp
-    #     current_time = self.format_time(self.current_frame_idx)
-    #     total_time = self.format_time(self.total_frames)
-    #     self.timestamp_label.setText(f"{current_time} / {total_time}")
-
     def show_cv_frame(self, frame):
         # Apply overlay BEFORE rotation so they align in the same original coord space
         frame_with_overlay = cv2.addWeighted(frame, 1.0, self.global_overlay, 1.0, 0)
         frame_rgb = cv2.cvtColor(frame_with_overlay, cv2.COLOR_BGR2RGB)
+
+        frame_rgb = cv2.resize(frame_rgb, (self.video_label.width(), self.video_label.height()))
+        #TODO: comment this line if want to avoid resizing
 
         # Apply rotation to the frame we will *display*
         if self.rotation_angle == 90:
